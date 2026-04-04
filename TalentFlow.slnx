@@ -1,0 +1,9 @@
+<Solution>
+  <Project Path="TalentFlow.Api/TalentFlow.Api.csproj" />
+  <Project Path="TalentFlow.Application/TalentFlow.Application.csproj" />
+  <Project Path="TalentFlow.Domain/TalentFlow.Domain.csproj" />
+  <Project Path="TalentFlow.Infrastructure/TalentFlow.Infrastructure.csproj" />
+  <Project Path="TalentFlow.Persistence/TalentFlow.Persistence.csproj" />
+  <Project Path="TalentFlow.Shared/TalentFlow.Shared.csproj" />
+  <Project Path="TalentFlow.Test/TalentFlow.Test.csproj" Id="c2a0a8b2-0b88-4aca-a67e-cd4b5782ed7d" />
+</Solution>
