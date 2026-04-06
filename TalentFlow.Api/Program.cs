@@ -109,7 +109,8 @@ if (app.Environment.IsDevelopment() || true)
         c.RoutePrefix = "swagger";
     });
 }
-app.MapGet("/", () => Results.Ok("TalentFlow API is running"));
+app.MapMethods("/", new[] { "GET", "HEAD" }, () => Results.Ok("TalentFlow API is running"));
+
 
 app.UseAuthentication();
 app.UseAuthorization();
