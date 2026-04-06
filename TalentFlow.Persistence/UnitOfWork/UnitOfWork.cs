@@ -1,8 +1,8 @@
-﻿// ... existing using statements
-using MediatR;
+﻿using MediatR;
 using TalentFlow.Application.Assessments.Events;
 using TalentFlow.Application.Common.Interfaces;
 using TalentFlow.Domain.Common;
+using TalentFlow.Domain.Entities;
 
 namespace TalentFlow.Persistence
 {
@@ -11,16 +11,28 @@ namespace TalentFlow.Persistence
         private readonly TalentFlowDbContext _context;
         private readonly IMediator _mediator;
 
-        public UnitOfWork(TalentFlowDbContext context, IMediator mediator)
+        public UnitOfWork(
+            TalentFlowDbContext context,
+            IMediator mediator,
+            IRoleRepository roleRepository,
+            IAuditLogRepository auditLogRepository
+        )
         {
             _context = context;
             _mediator = mediator;
+            Roles = roleRepository;
+            AuditLogs = auditLogRepository;
         }
+
+        // Repositories exposed via UnitOfWork
+        public IRoleRepository Roles { get; }
+        public IAuditLogRepository AuditLogs { get; }
 
         public async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
         {
             var result = await _context.SaveChangesAsync(cancellationToken);
 
+            // Collect domain events
             var entitiesWithEvents = _context.ChangeTracker
                 .Entries<EntityBase>()
                 .Where(e => e.Entity.DomainEvents.Any())
@@ -30,6 +42,7 @@ namespace TalentFlow.Persistence
             var domainEvents = entitiesWithEvents.SelectMany(e => e.DomainEvents).ToList();
             entitiesWithEvents.ForEach(e => e.ClearDomainEvents());
 
+            // Publish domain events via MediatR
             foreach (var domainEvent in domainEvents)
             {
                 switch (domainEvent)
@@ -43,11 +56,14 @@ namespace TalentFlow.Persistence
                         break;
 
                     case TalentFlow.Domain.Events.CourseCreatedDomainEvent courseCreated:
-                        await _mediator.Publish(new TalentFlow.Application.Courses.Events.CourseCreatedNotification(new TalentFlow.Application.Courses.Events.CourseCreatedEvent(courseCreated.Course.Id)), cancellationToken);
+                        await _mediator.Publish(new TalentFlow.Application.Courses.Events.CourseCreatedNotification(
+                            new TalentFlow.Application.Courses.Events.CourseCreatedEvent(courseCreated.Course.Id)), cancellationToken);
                         break;
 
                     case TalentFlow.Domain.Events.CourseEnrollmentDomainEvent enrollmentEvent:
-                        await _mediator.Publish(new TalentFlow.Application.Courses.Events.CourseEnrollmentNotification(new TalentFlow.Application.Enrollments.Events.CourseEnrollmentEvent(enrollmentEvent.Enrollment.Id, enrollmentEvent.Course.Id, enrollmentEvent.User.Id)), cancellationToken);
+                        await _mediator.Publish(new TalentFlow.Application.Courses.Events.CourseEnrollmentNotification(
+                            new TalentFlow.Application.Enrollments.Events.CourseEnrollmentEvent(
+                                enrollmentEvent.Enrollment.Id, enrollmentEvent.Course.Id, enrollmentEvent.User.Id)), cancellationToken);
                         break;
 
                     case TalentFlow.Domain.Events.NotificationSentDomainEvent notificationSent:

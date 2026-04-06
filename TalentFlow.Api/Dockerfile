@@ -1,12 +1,19 @@
-﻿# Use the official .NET 10 preview runtime image
-FROM mcr.microsoft.com/dotnet/aspnet:10.0-preview AS base
+﻿# Base runtime image
+FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS base
 WORKDIR /app
-EXPOSE 80
+
+# Use Render's PORT environment variable
+ENV ASPNETCORE_URLS=http://+:$PORT
+
+# Expose a generic port (Render will override)
+EXPOSE 8080
 
 # Build stage
-FROM mcr.microsoft.com/dotnet/sdk:10.0-preview AS build
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
 COPY . .
+
+# 🔥 IMPORTANT: Make sure this path is correct in your repo
 RUN dotnet restore TalentFlow.Api/TalentFlow.Api.csproj
 RUN dotnet publish TalentFlow.Api/TalentFlow.Api.csproj -c Release -o /app/publish
 
@@ -14,4 +21,5 @@ RUN dotnet publish TalentFlow.Api/TalentFlow.Api.csproj -c Release -o /app/publi
 FROM base AS final
 WORKDIR /app
 COPY --from=build /app/publish .
+
 ENTRYPOINT ["dotnet", "TalentFlow.Api.dll"]

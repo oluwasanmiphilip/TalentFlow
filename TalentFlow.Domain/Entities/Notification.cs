@@ -21,5 +21,12 @@ namespace TalentFlow.Domain.Entities
 
             AddDomainEvent(new NotificationSentDomainEvent(this));
         }
+
+        // ✅ New domain method
+        public void MarkAsSent()
+        {
+            SentAt = DateTime.UtcNow;
+            AddDomainEvent(new NotificationSentDomainEvent(this));
+        }
     }
 }

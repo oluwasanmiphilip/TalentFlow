@@ -18,6 +18,9 @@ namespace TalentFlow.Persistence
         public DbSet<Instructor> Instructors { get; set; } = null!;
         public DbSet<Assessment> Assessments { get; set; } = null!;
         public DbSet<Question> Questions { get; set; } = null!;
+        public DbSet<AuditLog> AuditLogs { get; set; }
+        public DbSet<Role> Roles { get; set; }
+
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

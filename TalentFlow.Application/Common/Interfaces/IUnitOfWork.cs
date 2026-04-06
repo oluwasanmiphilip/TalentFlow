@@ -1,7 +1,12 @@
-﻿namespace TalentFlow.Application.Common.Interfaces
+﻿using TalentFlow.Domain.Entities;
+
+namespace TalentFlow.Application.Common.Interfaces
 {
     public interface IUnitOfWork
     {
+        IRoleRepository Roles { get; }
+        IAuditLogRepository AuditLogs { get; }
+
         Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
     }
 
@@ -20,11 +25,4 @@
         Task SendAsync(NotificationMessage notificationMessage);
         Task SendNotificationAsync(Guid notificationId, CancellationToken cancellationToken = default);
     }
-}
-
-public class NotificationMessage
-{
-    public string LearnerId { get; set; } = string.Empty;
-    public string DeepLinkUrl { get; set; } = string.Empty;
-    public string Message { get; set; } = string.Empty;
 }

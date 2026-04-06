@@ -4,7 +4,6 @@ using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using TalentFlow.Application.Common.Interfaces;
 using TalentFlow.Application.Courses.Events;
-using TalentFlow.Application.Notifications;
 using TalentFlow.Application.Notifications.Commands;
 using TalentFlow.Infrastructure.Auth;
 using TalentFlow.Infrastructure.Events;
@@ -14,48 +13,63 @@ using TalentFlow.Persistence.Repositories;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Register MediatR (scan Application assembly for all handlers)
+// 1. Configure Kestrel BEFORE building the app
+var port = Environment.GetEnvironmentVariable("PORT") ?? "8080";
+
+builder.WebHost.ConfigureKestrel(options =>
+{
+    options.ListenAnyIP(int.Parse(port));
+});
+
+// 2. Service registrations
 builder.Services.AddMediatR(cfg =>
 {
     cfg.RegisterServicesFromAssembly(typeof(CourseCreatedEvent).Assembly);
     cfg.RegisterServicesFromAssembly(typeof(SendNotificationCommandHandler).Assembly);
 });
 
-// Register DbContext with interceptor
 builder.Services.AddScoped<DomainEventSaveChangesInterceptor>();
+
 builder.Services.AddDbContext<TalentFlowDbContext>((sp, options) =>
 {
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"));
     options.AddInterceptors(sp.GetRequiredService<DomainEventSaveChangesInterceptor>());
 });
 
-// Register repositories
+// Repositories & Unit of Work
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<ICourseRepository, CourseRepository>();
 builder.Services.AddScoped<IAssessmentRepository, AssessmentRepository>();
 builder.Services.AddScoped<IEnrollmentRepository, EnrollmentRepository>();
 builder.Services.AddScoped<IInstructorRepository, InstructorRepository>();
 builder.Services.AddScoped<INotificationRepository, NotificationRepository>();
-
-// Register UnitOfWork
+builder.Services.AddScoped<IAuditLogRepository, AuditLogRepository>();
+builder.Services.AddScoped<IRoleRepository, RoleRepository>();
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
-
-
-//Jwt Service
 builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
 
-// Kafka producer
-var config = new ProducerConfig { BootstrapServers = "localhost:9092" };
-var producer = new ProducerBuilder<string, string>(config).Build();
-builder.Services.AddSingleton<IProducer<string, string>>(producer);
+// Messaging provider selection
+var messagingProvider = builder.Configuration["Messaging:Provider"];
+if (messagingProvider == "Kafka")
+{
+    var config = new ProducerConfig
+    {
+        BootstrapServers = builder.Configuration["Kafka:BootstrapServers"]
+    };
+    builder.Services.AddSingleton<IProducer<string, string>>(
+        new ProducerBuilder<string, string>(config).Build());
+    builder.Services.AddScoped<IEventStreamPublisher, KafkaEventStreamPublisher>();
+}
+else
+{
+    builder.Services.AddScoped<IEventStreamPublisher>(sp =>
+        new RabbitMqEventStreamPublisher("localhost"));
+}
 
-// Register NotificationService
-builder.Services.AddScoped<INotificationService, NotificationService>();
+// Notification service
+builder.Services.AddScoped<INotificationService, TalentFlow.Application.Notifications.NotificationService>();
 
-// EventStream publisher (choose one or configure both properly)
-builder.Services.AddScoped<IEventStreamPublisher, KafkaEventStreamPublisher>();
-
-// Authentication
+// Authentication & Authorization
 builder.Services.AddAuthentication("Bearer")
     .AddJwtBearer("Bearer", options =>
     {
@@ -78,36 +92,26 @@ builder.Services.AddAuthorization(options =>
         policy.RequireRole("Learner"));
 });
 
-// Controllers + Swagger
+// Controllers, Swagger
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen(c =>
-{
-    c.SwaggerDoc("v1", new() { Title = "TalentFlow API v1", Version = "v1" });
-    c.SwaggerDoc("v2", new() { Title = "TalentFlow API v2", Version = "v2" });
-    c.SwaggerDoc("v3", new() { Title = "TalentFlow API v3", Version = "v3" });
-    c.SwaggerDoc("v4", new() { Title = "TalentFlow API v4", Version = "v4" });
-    c.SwaggerDoc("v5", new() { Title = "TalentFlow API v5", Version = "v5" });
-});
+builder.Services.AddSwaggerGen();
 
+// 3. Build the app
 var app = builder.Build();
 
-// Enable Swagger UI
-app.UseSwagger();
-app.UseSwaggerUI(c =>
+// 4. Middleware pipeline
+if (app.Environment.IsDevelopment() || true)
 {
-    c.SwaggerEndpoint("/swagger/v1/swagger.json", "TalentFlow API v1");
-    c.SwaggerEndpoint("/swagger/v2/swagger.json", "TalentFlow API v2");
-    c.SwaggerEndpoint("/swagger/v3/swagger.json", "TalentFlow API v3");
-    c.SwaggerEndpoint("/swagger/v4/swagger.json", "TalentFlow API v4");
-    c.SwaggerEndpoint("/swagger/v5/swagger.json", "TalentFlow API v5");
-    c.RoutePrefix = "swagger"; // UI available at /swagger
-});
+    app.UseSwagger();
+    app.UseSwaggerUI(c =>
+    {
+        c.RoutePrefix = "swagger";
+    });
+}
 
-// Middleware
 app.UseAuthentication();
 app.UseAuthorization();
-
-// Map controllers
 app.MapControllers();
+
 app.Run();
