@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using TalentFlow.Application.Common.Interfaces;
+using TalentFlow.Application.Common.Models;
 using TalentFlow.Application.Courses.Commands;
 using TalentFlow.Application.Courses.DTOs;
 using TalentFlow.Application.Courses.Mappings;
@@ -32,17 +33,17 @@ namespace TalentFlow.API.Controllers
 
         // POST: api/course
         [HttpPost]
-        public async Task<ActionResult<Guid>> CreateCourse([FromBody] CreateCourseCommand command)
+        public async Task<IActionResult> CreateCourse([FromBody] CreateCourseCommand command)
         {
             if (string.IsNullOrWhiteSpace(command.Title) ||
                 string.IsNullOrWhiteSpace(command.Description) ||
                 string.IsNullOrWhiteSpace(command.Slug))
             {
-                return BadRequest("Title, description, and slug are required.");
+                return BadRequest(ApiResponse<string>.Fail("Title, description, and slug are required", 400));
             }
 
             var courseId = await _mediator.Send(command);
-            return Ok(courseId);
+            return Created($"api/course/{courseId}", ApiResponse<object>.Success(new { id = courseId }, "Course created successfully", 201));
         }
 
         // PUT: api/course/{id}
@@ -66,12 +67,12 @@ namespace TalentFlow.API.Controllers
 
         // GET: api/course/{slug}
         [HttpGet("{slug}")]
-        public async Task<ActionResult<CourseDto>> GetCourseBySlug(string slug)
+        public async Task<IActionResult> GetCourseBySlug(string slug)
         {
             var course = await _repo.GetBySlugAsync(slug);
-            if (course == null) return NotFound();
+            if (course == null) return NotFound(ApiResponse<string>.Fail("Course not found", 404));
 
-            return Ok(course.ToDto());
+            return Ok(ApiResponse<object>.Success(course.ToDto(), "Course retrieved successfully"));
         }
 
         // GET: api/course

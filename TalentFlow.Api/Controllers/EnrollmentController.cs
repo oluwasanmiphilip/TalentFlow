@@ -1,13 +1,14 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Threading.Tasks;
-using MediatR;
+﻿using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using TalentFlow.Application.Common.Models;
+using TalentFlow.Application.Courses.DTOs; // ✅ Correct import
 using TalentFlow.Application.Enrollments.Commands;
 using TalentFlow.Application.Enrollments.DTOs;
 using TalentFlow.Application.Enrollments.Queries;
-using TalentFlow.Application.Courses.DTOs; // ✅ Correct import
 
 namespace TalentFlow.API.Controllers
 {
@@ -25,12 +26,12 @@ namespace TalentFlow.API.Controllers
 
         // GET: api/enrollment/{id}
         [HttpGet("{id}")]
-        public async Task<ActionResult<EnrollmentDto>> GetEnrollment(Guid id)
+        public async Task<IActionResult> GetEnrollment(Guid id)
         {
             var enrollment = await _mediator.Send(new GetEnrollmentQuery(id));
-            if (enrollment == null) return NotFound();
+            if (enrollment == null) return NotFound(ApiResponse<string>.Fail("Enrollment not found", 404));
 
-            return Ok(enrollment);
+            return Ok(ApiResponse<object>.Success(enrollment, "Enrollment retrieved successfully"));
         }
 
         // GET: api/enrollment/course/{courseId}
@@ -47,13 +48,15 @@ namespace TalentFlow.API.Controllers
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateEnrollment(Guid id, [FromBody] UpdateEnrollmentCommand command)
         {
-            if (id != command.Id) return BadRequest("ID mismatch");
+            if (id != command.Id) return BadRequest(ApiResponse<string>.Fail("ID mismatch", 400));
 
             var updatedBy = User.FindFirst("learner_id")?.Value ?? "system";
             var enrichedCommand = command with { UpdatedBy = updatedBy };
 
             var result = await _mediator.Send(enrichedCommand);
-            return result ? Ok(new { message = "Enrollment updated" }) : NotFound();
+            return result
+                ? Ok(ApiResponse<string>.Success("Enrollment updated"))
+                : NotFound(ApiResponse<string>.Fail("Enrollment not found", 404));
         }
 
         // DELETE: api/enrollment/{id}

@@ -4,11 +4,12 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using TalentFlow.Application.Common.Interfaces;
+using TalentFlow.Application.Common.Models;
 using TalentFlow.Application.Courses.Events;
 using TalentFlow.Application.Notifications.Commands;
 using TalentFlow.Infrastructure.Auth;
-using TalentFlow.Infrastructure.Security;
 using TalentFlow.Infrastructure.Events;
+using TalentFlow.Infrastructure.Security;
 using TalentFlow.Persistence;
 using TalentFlow.Persistence.Interceptors;
 using TalentFlow.Persistence.Repositories;
@@ -136,6 +137,7 @@ else
         new RabbitMqEventStreamPublisher(rabbitHost));
 }
 
+
 // ============================
 // NOTIFICATIONS
 // ============================
@@ -150,6 +152,20 @@ builder.Services.AddSwaggerGen();
 // BUILD APP
 // ============================
 var app = builder.Build();
+
+
+//Global ErrorHandling Middle Ware
+app.UseExceptionHandler(errorApp =>
+{
+    errorApp.Run(async context =>
+    {
+        context.Response.ContentType = "application/json";
+        context.Response.StatusCode = 500;
+
+        var response = ApiResponse<string>.Fail("An unexpected error occurred", 500);
+        await context.Response.WriteAsJsonAsync(response);
+    });
+});
 // Seed roles
 using (var scope = app.Services.CreateScope())
 {

@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using TalentFlow.Application.Common.Models;
 using TalentFlow.Domain.Entities;
 
 [ApiController]
@@ -11,6 +12,13 @@ public class DashboardController : ControllerBase
     public IActionResult GetDashboard()
     {
         var learnerId = User.FindFirst("learner_id")?.Value;
-        return Ok(new { learner_id = learnerId, courses = new[] { "Course A", "Course B" } });
+        if (learnerId == null)
+            return Unauthorized(ApiResponse<string>.Fail("Unauthorized access", 401));
+
+        return Ok(ApiResponse<object>.Success(new
+        {
+            learner_id = learnerId,
+            courses = new[] { "Course A", "Course B" }
+        }, "Dashboard retrieved successfully"));
     }
 }
