@@ -18,6 +18,7 @@ namespace TalentFlow.Application.Courses.Queries
 
         public async Task<List<CourseDto>> Handle(GetCoursesByLearnerQuery request, CancellationToken cancellationToken)
         {
+            // ✅ request.LearnerId must be Guid
             var user = await _userRepository.GetByLearnerIdAsync(request.LearnerId, cancellationToken);
             if (user is null) return new List<CourseDto>();
 

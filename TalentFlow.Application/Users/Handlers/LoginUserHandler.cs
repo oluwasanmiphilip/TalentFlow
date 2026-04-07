@@ -1,28 +1,42 @@
-﻿using MediatR;
+﻿using System.Threading;
+using System.Threading.Tasks;
+using MediatR;
 using TalentFlow.Application.Users.Commands;
+using TalentFlow.Application.Users.DTOs;
 using TalentFlow.Application.Common.Interfaces;
 
 namespace TalentFlow.Application.Users.Handlers
 {
-    public class LoginUserHandler : IRequestHandler<LoginUserCommand, string>
+    public class LoginUserHandler : IRequestHandler<LoginUserCommand, UserDto>
     {
         private readonly IUserRepository _userRepository;
-        private readonly IJwtTokenService _jwtTokenService;
+        private readonly IPasswordHasher _passwordHasher;
 
-        public LoginUserHandler(IUserRepository userRepository, IJwtTokenService jwtTokenService)
+        public LoginUserHandler(IUserRepository userRepository, IPasswordHasher passwordHasher)
         {
             _userRepository = userRepository;
-            _jwtTokenService = jwtTokenService;
+            _passwordHasher = passwordHasher;
         }
 
-        public async Task<string> Handle(LoginUserCommand request, CancellationToken cancellationToken)
+        public async Task<UserDto> Handle(LoginUserCommand request, CancellationToken cancellationToken)
         {
-            var user = await _userRepository.GetByLearnerIdAsync(request.LearnerId, cancellationToken);
-            if (user == null || user.Email != request.Email)
+            // Look up user by email
+            var user = await _userRepository.GetByEmailAsync(request.Email, cancellationToken);
+            if (user == null)
                 throw new UnauthorizedAccessException("Invalid credentials");
 
-            // Generate JWT token
-            return _jwtTokenService.GenerateToken(user.LearnerId, user.Email);
+            // Verify password
+            if (!_passwordHasher.Verify(request.Password, user.PasswordHash))
+                throw new UnauthorizedAccessException("Invalid credentials");
+
+            // Map back to DTO
+            return new UserDto
+            {
+                LearnerId = user.LearnerId,
+                FullName = user.FullName,
+                Email = user.Email,
+                Role = user.Role
+            };
         }
     }
 }

@@ -1,7 +1,4 @@
-﻿using System;
-using System.Threading;
-using System.Threading.Tasks;
-using TalentFlow.Application.Common.Interfaces;
+﻿using TalentFlow.Application.Common.Interfaces;
 using TalentFlow.Domain.Entities;
 using TalentFlow.Persistence;
 
@@ -19,11 +16,8 @@ namespace TalentFlow.Infrastructure.Services
         // Send a new notification
         public async Task SendAsync(NotificationMessage notificationMessage)
         {
-            // Convert LearnerId (string) into Guid for UserId
-            var userId = Guid.Parse(notificationMessage.LearnerId);
-
-            // Use the entity constructor
-            var notification = new Notification(userId, notificationMessage.Message);
+            // ✅ LearnerId is already Guid
+            var notification = new Notification(notificationMessage.LearnerId, notificationMessage.Message);
 
             await _context.Notifications.AddAsync(notification);
             await _context.SaveChangesAsync();
@@ -35,11 +29,9 @@ namespace TalentFlow.Infrastructure.Services
             var notification = await _context.Notifications.FindAsync(new object[] { notificationId }, cancellationToken);
             if (notification == null) return;
 
-            // Use the domain method instead of setting SentAt directly
             notification.MarkAsSent();
 
             await _context.SaveChangesAsync(cancellationToken);
         }
-
     }
 }

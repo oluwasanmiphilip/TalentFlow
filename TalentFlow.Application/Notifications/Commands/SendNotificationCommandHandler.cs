@@ -16,7 +16,7 @@ namespace TalentFlow.Application.Notifications.Commands
         {
             await _notificationService.SendAsync(new NotificationMessage
             {
-                LearnerId = request.UserId.ToString(), // adapt to your NotificationMessage type
+                LearnerId = request.UserId,   // ✅ Guid directly
                 DeepLinkUrl = "/me/profile",
                 Message = request.Message
             });

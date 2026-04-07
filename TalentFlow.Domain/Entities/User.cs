@@ -7,16 +7,17 @@ namespace TalentFlow.Domain.Entities
     {
         public Guid Id { get; private set; } // internal DB ID
 
-        public string LearnerId { get; private set; } = null!; // ✅ FIX
-        public string Email { get; private set; } = null!;     // ✅ FIX
-        public string FullName { get; private set; } = null!;  // ✅ FIX
+        public Guid LearnerId { get; private set; }   // ✅ Guid now
+        public string Email { get; private set; } = null!;
+        public string FullName { get; private set; } = null!;
+        public string PasswordHash { get; private set; } = null!;
+        public string Role { get; private set; } = null!;
 
         private User() { } // EF Core
 
-        public User(string learnerId, string email, string name)
+        public User(Guid learnerId, string email, string name, string passwordHash, string role)
         {
-            // ✅ DOMAIN VALIDATION (Senior Practice)
-            if (string.IsNullOrWhiteSpace(learnerId))
+            if (learnerId == Guid.Empty)
                 throw new ArgumentException("LearnerId cannot be empty");
 
             if (string.IsNullOrWhiteSpace(email))
@@ -25,10 +26,18 @@ namespace TalentFlow.Domain.Entities
             if (string.IsNullOrWhiteSpace(name))
                 throw new ArgumentException("Full name cannot be empty");
 
+            if (string.IsNullOrWhiteSpace(passwordHash))
+                throw new ArgumentException("PasswordHash cannot be empty");
+
+            if (string.IsNullOrWhiteSpace(role))
+                throw new ArgumentException("Role cannot be empty");
+
             Id = Guid.NewGuid();
             LearnerId = learnerId;
             Email = email;
             FullName = name;
+            PasswordHash = passwordHash;
+            Role = role;
 
             AddDomainEvent(new UserRegisteredDomainEvent(this));
         }
@@ -39,7 +48,6 @@ namespace TalentFlow.Domain.Entities
                 throw new ArgumentException("Full name cannot be empty");
 
             FullName = name;
-
             AddDomainEvent(new UserProfileUpdatedDomainEvent(this));
         }
     }

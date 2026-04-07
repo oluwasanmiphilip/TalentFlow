@@ -1,10 +1,12 @@
 using Confluent.Kafka;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using TalentFlow.Application.Common.Interfaces;
 using TalentFlow.Application.Courses.Events;
 using TalentFlow.Application.Notifications.Commands;
+using TalentFlow.Infrastructure.Auth;
 using TalentFlow.Infrastructure.Security;
 using TalentFlow.Infrastructure.Events;
 using TalentFlow.Persistence;
@@ -40,6 +42,10 @@ builder.Services.AddDbContext<TalentFlowDbContext>((sp, options) =>
     options.AddInterceptors(sp.GetRequiredService<DomainEventSaveChangesInterceptor>());
 });
 
+
+//Seeder
+builder.Services.AddScoped<RoleSeeder>();
+
 // Repositories
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<ICourseRepository, CourseRepository>();
@@ -52,9 +58,13 @@ builder.Services.AddScoped<IRoleRepository, RoleRepository>();
 builder.Services.AddScoped<IQuestionRepository, QuestionRepository>();
 builder.Services.AddScoped<ILessonRepository, LessonRepository>();
 builder.Services.AddScoped<ICertificateRepository, CertificateRepository>();
+builder.Services.AddScoped<RoleSeeder>();
 
 // Unit of Work
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
+
+//Password
+builder.Services.AddScoped<IPasswordHasher, PasswordHasher>();
 
 // JWT service
 //builder.Services.AddSingleton<IJwtTokenService, JwtTokenService>();
@@ -66,8 +76,7 @@ var jwtSecret = builder.Configuration["Jwt:Secret"]
     ?? throw new Exception("JWT Secret not configured");
 
 // Register JwtTokenService with secret
-builder.Services.AddSingleton<IJwtTokenService>(sp =>
-    new JwtTokenService(jwtSecret));
+builder.Services.AddSingleton<IJwtTokenService, TalentFlow.Infrastructure.Auth.JwtTokenService>();
 
 builder.Services.AddAuthentication("Bearer")
     .AddJwtBearer("Bearer", options =>
@@ -91,6 +100,12 @@ builder.Services.AddAuthorization(options =>
     options.AddPolicy("RequireLearner", policy =>
         policy.RequireRole("Learner"));
 });
+
+//Identity
+/*builder.Services.AddIdentity<IdentityUser, IdentityRole>()
+    .AddEntityFrameworkStores<TalentFlowDbContext>()
+    .AddDefaultTokenProviders();*/
+
 
 // ============================
 // MESSAGING (EVENT-DRIVEN)
@@ -135,6 +150,12 @@ builder.Services.AddSwaggerGen();
 // BUILD APP
 // ============================
 var app = builder.Build();
+// Seed roles
+using (var scope = app.Services.CreateScope())
+{
+    var roleSeeder = scope.ServiceProvider.GetRequiredService<RoleSeeder>();
+    await roleSeeder.SeedRolesAsync();
+}
 
 // ============================
 // MIDDLEWARE PIPELINE

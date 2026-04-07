@@ -8,8 +8,7 @@ namespace TalentFlow.Application.Courses.Validators
         public GetCoursesByLearnerQueryValidator()
         {
             RuleFor(q => q.LearnerId)
-                .NotEmpty().WithMessage("LearnerId is required")
-                .Matches("^[a-zA-Z0-9_-]+$").WithMessage("LearnerId must be alphanumeric");
+                .NotEmpty().WithMessage("LearnerId is required"); // ✅ Guid check only
         }
     }
 }

@@ -1,10 +1,12 @@
-﻿namespace TalentFlow.Application.Users.DTOs;
+﻿using System;
 
-public class UserDto
+namespace TalentFlow.Application.Users.DTOs
 {
-    public Guid Id { get; set; }
-    public string LearnerId { get; set; } = string.Empty;
-    public string Email { get; set; } = string.Empty;
-    public string FullName { get; set; } = string.Empty;
-    public string Role { get; set; } = string.Empty ;
+    public class UserDto
+    {
+        public Guid LearnerId { get; set; }
+        public string FullName { get; set; } = string.Empty;
+        public string Email { get; set; } = string.Empty;
+        public string Role { get; set; } = string.Empty;
+    }
 }

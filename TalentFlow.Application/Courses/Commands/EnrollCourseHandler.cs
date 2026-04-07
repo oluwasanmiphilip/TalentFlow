@@ -19,6 +19,7 @@ namespace TalentFlow.Application.Courses.Commands
 
         public async Task<bool> Handle(EnrollCourseCommand request, CancellationToken cancellationToken)
         {
+            // ✅ request.LearnerId must be Guid
             var user = await _userRepository.GetByLearnerIdAsync(request.LearnerId, cancellationToken);
             if (user is null) return false;
 

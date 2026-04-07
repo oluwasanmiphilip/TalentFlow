@@ -4,10 +4,10 @@ namespace TalentFlow.Application.Common.Interfaces
 {
     public interface IUserRepository
     {
-        Task<User?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
-        Task<User?> GetByLearnerIdAsync(string learnerId, CancellationToken cancellationToken = default);
-        Task<User?> GetByEmailAsync(string email, CancellationToken cancellationToken = default);
-        Task AddAsync(User user, CancellationToken cancellationToken = default);
-        Task UpdateAsync(User user, CancellationToken cancellationToken = default);
+        Task<User?> GetByIdAsync(Guid id, CancellationToken ct);
+        Task<User?> GetByLearnerIdAsync(Guid learnerId, CancellationToken ct); // ✅ Guid
+        Task<User?> GetByEmailAsync(string email, CancellationToken ct);
+        Task AddAsync(User user, CancellationToken ct);
+        Task UpdateAsync(User user, CancellationToken ct);
     }
 }

@@ -1,16 +1,13 @@
 ﻿using MediatR;
-using TalentFlow.Domain.Entities;
-
 using TalentFlow.Application.Users.DTOs;
 
 namespace TalentFlow.Application.Users.Commands
 {
-    /// <summary>
-    /// Command to register a new user in the system.
-    /// </summary>
-    public record RegisterUserCommand(
-        string LearnerId,
-        string Email,
-        string FullName
-    ) : IRequest<UserDto>;
+    public class RegisterUserCommand : IRequest<UserDto>
+    {
+        public string Email { get; set; } = string.Empty;
+        public string FullName { get; set; } = string.Empty;
+        public string Password { get; set; } = string.Empty;
+        public string Role { get; set; } = string.Empty;
+    }
 }

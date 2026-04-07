@@ -1,5 +1,7 @@
-﻿using TalentFlow.Domain.Entities;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
+using TalentFlow.Domain.Entities;
+using BCrypt.Net;
+
 
 namespace TalentFlow.Persistence
 {
@@ -13,7 +15,14 @@ namespace TalentFlow.Persistence
             // Seed Admin User
             if (!context.Users.Any())
             {
-                var admin = new User("admin@talentflow.com", "System Admin", "admin-learner-id");
+                var admin = new User(
+                    Guid.NewGuid(),                          // ✅ LearnerId as Guid
+                    "admin@talentflow.com",                  // ✅ Email
+                    "System Admin",                          // ✅ FullName
+                    "Admin",                                 // ✅ Role
+                    BCrypt.Net.BCrypt.HashPassword("Admin123!") // ✅ PasswordHash
+                );
+
                 context.Users.Add(admin);
             }
 

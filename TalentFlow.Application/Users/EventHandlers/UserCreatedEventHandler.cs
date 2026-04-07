@@ -22,7 +22,7 @@ namespace TalentFlow.Application.Users.EventHandlers
             // Send welcome notification
             await _notificationService.SendAsync(new NotificationMessage
             {
-                LearnerId = user.LearnerId,
+                LearnerId = user.LearnerId,   // ✅ Guid directly
                 DeepLinkUrl = "/me/profile",
                 Message = $"Welcome {user.FullName}! Your account has been created."
             });
@@ -30,7 +30,7 @@ namespace TalentFlow.Application.Users.EventHandlers
             // Publish to event stream (Kafka, etc.)
             await _eventStream.PublishAsync("UserCreated", new
             {
-                learner_id = user.LearnerId,
+                learner_id = user.LearnerId.ToString(),  // ✅ convert Guid to string for JSON
                 email = user.Email,
                 name = user.FullName,
                 created_at = DateTime.UtcNow

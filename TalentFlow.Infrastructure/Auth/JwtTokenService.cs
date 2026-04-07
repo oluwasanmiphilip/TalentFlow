@@ -7,7 +7,7 @@ using TalentFlow.Application.Common.Interfaces;
 
 namespace TalentFlow.Infrastructure.Auth
 {
-    public class JwtTokenService
+    public class JwtTokenService : IJwtTokenService
     {
         private readonly IConfiguration _configuration;
 
@@ -16,9 +16,9 @@ namespace TalentFlow.Infrastructure.Auth
             _configuration = configuration;
         }
 
-        public string GenerateToken(string learnerId, string email, string roleName)
+        public string GenerateToken(Guid learnerId, string email, string roleName)
         {
-            if (string.IsNullOrWhiteSpace(learnerId))
+            if (learnerId == Guid.Empty)
                 throw new ArgumentException("LearnerId cannot be null or empty", nameof(learnerId));
             if (string.IsNullOrWhiteSpace(email))
                 throw new ArgumentException("Email cannot be null or empty", nameof(email));
@@ -27,7 +27,7 @@ namespace TalentFlow.Infrastructure.Auth
 
             var claims = new[]
             {
-                new Claim("learner_id", learnerId),
+                new Claim("learner_id", learnerId.ToString()),
                 new Claim(ClaimTypes.Email, email),
                 new Claim(ClaimTypes.Role, roleName)
             };

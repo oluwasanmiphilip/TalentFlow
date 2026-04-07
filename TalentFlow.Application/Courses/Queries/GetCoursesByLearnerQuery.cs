@@ -3,5 +3,13 @@ using TalentFlow.Application.Courses.DTOs;
 
 namespace TalentFlow.Application.Courses.Queries
 {
-    public record GetCoursesByLearnerQuery(string LearnerId) : IRequest<List<CourseDto>>;
+    public class GetCoursesByLearnerQuery : IRequest<List<CourseDto>>
+    {
+        public Guid LearnerId { get; }
+
+        public GetCoursesByLearnerQuery(Guid learnerId)   // ✅ constructor
+        {
+            LearnerId = learnerId;
+        }
+    }
 }

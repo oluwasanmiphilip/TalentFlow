@@ -25,14 +25,10 @@ namespace TalentFlow.Application.Courses.Commands
             var course = await _courseRepository.GetBySlugAsync(request.CourseSlug, cancellationToken);
             if (course == null) return false;
 
-            // Convert LearnerId string to Guid and fetch User entity
-            if (!Guid.TryParse(request.LearnerId, out var learnerGuid))
-                return false;
-
-            var user = await _userRepository.GetByIdAsync(learnerGuid, cancellationToken);
+            // ✅ LearnerId is already Guid
+            var user = await _userRepository.GetByLearnerIdAsync(request.LearnerId, cancellationToken);
             if (user == null) return false;
 
-            // Pass the User entity to Enroll
             course.Enroll(user);
 
             await _unitOfWork.SaveChangesAsync(cancellationToken);

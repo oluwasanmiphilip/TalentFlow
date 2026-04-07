@@ -2,6 +2,9 @@
 
 namespace TalentFlow.Application.Courses.Commands
 {
-    // Command to enroll a learner in a course by slug
-    public record EnrollCourseCommand(string LearnerId, string CourseSlug) : IRequest<bool>;
+    public class EnrollCourseCommand : IRequest<bool>
+    {
+        public Guid LearnerId { get; set; }   // ✅ Guid
+        public string CourseSlug { get; set; } = string.Empty;
+    }
 }

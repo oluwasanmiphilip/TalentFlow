@@ -36,6 +36,7 @@ namespace TalentFlow.API.Controllers
             });
         }
 
+
         [HttpGet("me/dashboard")]
         public IActionResult GetDashboard()
         {
@@ -48,5 +49,23 @@ namespace TalentFlow.API.Controllers
                 dashboard = new { courses = new[] { "Course A", "Course B" } }
             });
         }
+        [HttpPost("login")]
+        public async Task<IActionResult> Login([FromBody] LoginUserCommand command)
+        {
+            var userDto = await _mediator.Send(command);
+
+            var token = _jwt.GenerateToken(userDto.LearnerId, userDto.Email, userDto.Role);
+
+            return Ok(new
+            {
+                learner_id = userDto.LearnerId,
+                full_name = userDto.FullName,
+                email = userDto.Email,
+                role = userDto.Role,
+                token
+            });
+        }
+
+
     }
 }

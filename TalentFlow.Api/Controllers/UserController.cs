@@ -33,13 +33,13 @@ public class UserController : ControllerBase
         return user is null ? NotFound() : Ok(user);
     }
 
-    /// <summary>Get courses enrolled by a learner</summary>
     [HttpGet("{learnerId}/courses")]
-    public async Task<ActionResult<List<CourseDto>>> GetCoursesByLearner(string learnerId)
+    public async Task<ActionResult<List<CourseDto>>> GetCoursesByLearner(Guid learnerId)
     {
         var courses = await _mediator.Send(new GetCoursesByLearnerQuery(learnerId));
         return Ok(courses);
     }
+
     [HttpGet("{id}/certificates")]
     public async Task<IActionResult> GetCertificates(Guid id)
     {

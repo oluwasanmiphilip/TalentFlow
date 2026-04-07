@@ -16,11 +16,12 @@ namespace TalentFlow.Application.Users.Handlers
 
         public async Task<bool> Handle(UpdateUserProfileCommand request, CancellationToken cancellationToken)
         {
-            var user = await _repository.GetByLearnerIdAsync(request.LearnerId);
+            // ✅ request.LearnerId must be Guid
+            var user = await _repository.GetByLearnerIdAsync(request.LearnerId, cancellationToken);
             if (user == null) return false;
 
             user.UpdateProfile(request.Name);
-            await _repository.UpdateAsync(user);
+            await _repository.UpdateAsync(user, cancellationToken);
 
             return true;
         }

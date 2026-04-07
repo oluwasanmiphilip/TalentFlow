@@ -32,11 +32,36 @@ namespace TalentFlow.Persistence
         {
             base.OnModelCreating(modelBuilder);
 
-            // No foreign keys or auto mapping
-            // Each aggregate is independent
-            modelBuilder.Entity<Course>().Ignore(c => c.Enrollments); // handled manually
-            modelBuilder.Entity<Assessment>().Ignore(a => a.Questions); // handled manually
+            // Explicit configuration for User entity
+            modelBuilder.Entity<User>(entity =>
+            {
+                entity.HasKey(u => u.Id);
+
+                entity.Property(u => u.LearnerId)
+                      .IsRequired()
+                      .HasColumnType("uniqueidentifier");
+
+                entity.Property(u => u.Email)
+                      .IsRequired()
+                      .HasMaxLength(255);
+
+                entity.Property(u => u.FullName)
+                      .IsRequired()
+                      .HasMaxLength(255);
+
+                entity.Property(u => u.PasswordHash)
+                      .IsRequired();
+
+                entity.Property(u => u.Role)
+                      .IsRequired()
+                      .HasMaxLength(50);
+            });
+
+            // Other aggregates
+           
+            modelBuilder.Entity<Assessment>().Ignore(a => a.Questions);
             modelBuilder.ApplyConfigurationsFromAssembly(typeof(TalentFlowDbContext).Assembly);
         }
+
     }
 }

@@ -17,7 +17,7 @@ namespace TalentFlow.Persistence.Repositories
         public Task<User?> GetByIdAsync(Guid id, CancellationToken ct) =>
             _context.Users.FirstOrDefaultAsync(u => u.Id == id, ct);
 
-        public Task<User?> GetByLearnerIdAsync(string learnerId, CancellationToken ct) =>
+        public Task<User?> GetByLearnerIdAsync(Guid learnerId, CancellationToken ct) =>
             _context.Users.FirstOrDefaultAsync(u => u.LearnerId == learnerId, ct);
 
         public Task<User?> GetByEmailAsync(string email, CancellationToken ct) =>

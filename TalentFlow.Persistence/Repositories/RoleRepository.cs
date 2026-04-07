@@ -1,6 +1,6 @@
-﻿using TalentFlow.Application.Common.Interfaces;
+﻿using Microsoft.EntityFrameworkCore;
+using TalentFlow.Application.Common.Interfaces;
 using TalentFlow.Domain.Entities;
-using Microsoft.EntityFrameworkCore;
 
 namespace TalentFlow.Persistence.Repositories
 {
@@ -13,19 +13,27 @@ namespace TalentFlow.Persistence.Repositories
             _context = context;
         }
 
-        public async Task AddAsync(Role role, CancellationToken cancellationToken = default)
+        public Task<Role?> GetByIdAsync(Guid id, CancellationToken ct) =>
+            _context.Roles.FirstOrDefaultAsync(r => r.Id == id, ct);
+
+        public Task<Role?> GetByNameAsync(string name, CancellationToken ct) =>
+            _context.Roles.FirstOrDefaultAsync(r => r.Name == name, ct);
+
+        public async Task AddAsync(Role role, CancellationToken ct)
         {
-            await _context.Roles.AddAsync(role, cancellationToken);
+            await _context.Roles.AddAsync(role, ct);
         }
 
-        public async Task<Role?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
+        public Task UpdateAsync(Role role, CancellationToken ct)
         {
-            return await _context.Roles.FindAsync(new object[] { id }, cancellationToken);
+            _context.Roles.Update(role);
+            return Task.CompletedTask;
         }
 
-        public async Task<List<Role>> GetAllAsync(CancellationToken cancellationToken = default)
+        // ✅ Match interface exactly
+        public async Task<List<Role>> GetAllAsync(CancellationToken ct)
         {
-            return await _context.Roles.ToListAsync(cancellationToken);
+            return await _context.Roles.ToListAsync(ct);
         }
     }
 }
