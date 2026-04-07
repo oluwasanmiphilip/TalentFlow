@@ -19,7 +19,7 @@ public class UserController : ControllerBase
 
     /// <summary>Create a new user</summary>
     [HttpPost]
-    public async Task<ActionResult<UserDto>> CreateUser(CreateUserCommand command)
+    public async Task<ActionResult<UserDto>> CreateUser(RegisterUserCommand command)
     {
         var user = await _mediator.Send(command);
         return Ok(user);

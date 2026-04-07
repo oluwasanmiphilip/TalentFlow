@@ -1,209 +1,98 @@
-using Confluent.Kafka;
-using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
+// File Path: TalentFlow.API/Program.cs
+
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.EntityFrameworkCore;
 using System.Text;
 using TalentFlow.Application.Common.Interfaces;
-using TalentFlow.Application.Common.Models;
-using TalentFlow.Application.Courses.Events;
-using TalentFlow.Application.Notifications.Commands;
 using TalentFlow.Infrastructure.Auth;
-using TalentFlow.Infrastructure.Events;
-using TalentFlow.Infrastructure.Security;
 using TalentFlow.Persistence;
-using TalentFlow.Persistence.Interceptors;
 using TalentFlow.Persistence.Repositories;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// ============================
-// LOGGING (IMPORTANT)
-// ============================
-builder.Logging.ClearProviders();
-builder.Logging.AddConsole();
-
-// ============================
-// SERVICES
-// ============================
-
-// MediatR
-builder.Services.AddMediatR(cfg =>
+// ✅ Bind to Render dynamic port
+var port = Environment.GetEnvironmentVariable("PORT") ?? "8080";
+builder.WebHost.ConfigureKestrel(options =>
 {
-    cfg.RegisterServicesFromAssembly(typeof(CourseCreatedEvent).Assembly);
-    cfg.RegisterServicesFromAssembly(typeof(SendNotificationCommandHandler).Assembly);
+    options.ListenAnyIP(int.Parse(port));
 });
 
-// Interceptors
-builder.Services.AddScoped<DomainEventSaveChangesInterceptor>();
-
-// Database
-builder.Services.AddDbContext<TalentFlowDbContext>((sp, options) =>
-{
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"));
-    options.AddInterceptors(sp.GetRequiredService<DomainEventSaveChangesInterceptor>());
-});
-
-
-//Seeder
-builder.Services.AddScoped<RoleSeeder>();
-
-// Repositories
-builder.Services.AddScoped<IUserRepository, UserRepository>();
-builder.Services.AddScoped<ICourseRepository, CourseRepository>();
-builder.Services.AddScoped<IAssessmentRepository, AssessmentRepository>();
-builder.Services.AddScoped<IEnrollmentRepository, EnrollmentRepository>();
-builder.Services.AddScoped<IInstructorRepository, InstructorRepository>();
-builder.Services.AddScoped<INotificationRepository, NotificationRepository>();
-builder.Services.AddScoped<IAuditLogRepository, AuditLogRepository>();
-builder.Services.AddScoped<IRoleRepository, RoleRepository>();
-builder.Services.AddScoped<IQuestionRepository, QuestionRepository>();
-builder.Services.AddScoped<ILessonRepository, LessonRepository>();
-builder.Services.AddScoped<ICertificateRepository, CertificateRepository>();
-builder.Services.AddScoped<RoleSeeder>();
-
-// Unit of Work
-builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
-
-//Password
-builder.Services.AddScoped<IPasswordHasher, PasswordHasher>();
-
-// JWT service
-//builder.Services.AddSingleton<IJwtTokenService, JwtTokenService>();
-
-// ============================
-// AUTH SERVICE + AUTHENTICATION
-// ============================
-var jwtSecret = builder.Configuration["Jwt:Secret"]
-    ?? throw new Exception("JWT Secret not configured");
-
-// Register JwtTokenService with secret
-builder.Services.AddSingleton<IJwtTokenService, TalentFlow.Infrastructure.Auth.JwtTokenService>();
-
-builder.Services.AddAuthentication("Bearer")
-    .AddJwtBearer("Bearer", options =>
-    {
-        options.TokenValidationParameters = new TokenValidationParameters
-        {
-            ValidateIssuer = true,
-            ValidateAudience = true,
-            ValidateLifetime = true,
-            ValidateIssuerSigningKey = true,
-            ValidIssuer = "TalentFlow",
-            ValidAudience = "TalentFlowApi",
-            IssuerSigningKey = new SymmetricSecurityKey(
-                Encoding.UTF8.GetBytes(jwtSecret))
-        };
-    });
-
-// Authorization
-builder.Services.AddAuthorization(options =>
-{
-    options.AddPolicy("RequireLearner", policy =>
-        policy.RequireRole("Learner"));
-});
-
-//Identity
-/*builder.Services.AddIdentity<IdentityUser, IdentityRole>()
-    .AddEntityFrameworkStores<TalentFlowDbContext>()
-    .AddDefaultTokenProviders();*/
-
-
-// ============================
-// MESSAGING (EVENT-DRIVEN)
-// ============================
-var messagingProvider = builder.Configuration["Messaging:Provider"];
-
-if (messagingProvider == "Kafka")
-{
-    var kafkaServers = builder.Configuration["Kafka:BootstrapServers"]
-        ?? throw new Exception("Kafka BootstrapServers not configured");
-
-    var config = new ProducerConfig
-    {
-        BootstrapServers = kafkaServers
-    };
-
-    builder.Services.AddSingleton<IProducer<string, string>>(
-        new ProducerBuilder<string, string>(config).Build());
-
-    builder.Services.AddScoped<IEventStreamPublisher, KafkaEventStreamPublisher>();
-}
-else
-{
-    var rabbitHost = builder.Configuration["RabbitMQ:Host"]
-        ?? throw new Exception("RabbitMQ Host not configured");
-
-    builder.Services.AddScoped<IEventStreamPublisher>(sp =>
-        new RabbitMqEventStreamPublisher(rabbitHost));
-}
-
-
-// ============================
-// NOTIFICATIONS
-// ============================
-builder.Services.AddScoped<INotificationService, TalentFlow.Application.Notifications.NotificationService>();
-
-// Controllers & Swagger
+// ✅ Controllers
 builder.Services.AddControllers();
+
+// ✅ Swagger
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// ============================
-// BUILD APP
-// ============================
+// ✅ DbContext
+builder.Services.AddDbContext<TalentFlowDbContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+// ✅ Repositories
+builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<IRoleRepository, RoleRepository>();
+builder.Services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
+
+// ✅ JWT Service
+builder.Services.AddScoped<JwtTokenService>();
+
+// ✅ Authentication
+var key = Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Secret"]!);
+
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+})
+.AddJwtBearer(options =>
+{
+    options.RequireHttpsMetadata = false;
+    options.SaveToken = true;
+
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuer = false,
+        ValidateAudience = false,
+        ValidateLifetime = true,
+        ValidateIssuerSigningKey = true,
+        IssuerSigningKey = new SymmetricSecurityKey(key),
+        RoleClaimType = System.Security.Claims.ClaimTypes.Role
+    };
+});
+
+// ✅ Authorization
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("RequireAdmin", policy => policy.RequireRole("Admin"));
+    options.AddPolicy("RequireInstructor", policy => policy.RequireRole("Instructor"));
+    options.AddPolicy("RequireLearner", policy => policy.RequireRole("Learner"));
+});
+
+// ✅ MediatR
+builder.Services.AddMediatR(cfg =>
+    cfg.RegisterServicesFromAssembly(typeof(Program).Assembly));
+
 var app = builder.Build();
 
-
-//Global ErrorHandling Middle Ware
-app.UseExceptionHandler(errorApp =>
+// ✅ Swagger
+app.UseSwagger(c =>
 {
-    errorApp.Run(async context =>
-    {
-        context.Response.ContentType = "application/json";
-        context.Response.StatusCode = 500;
-
-        var response = ApiResponse<string>.Fail("An unexpected error occurred", 500);
-        await context.Response.WriteAsJsonAsync(response);
-    });
+    c.RouteTemplate = "swagger/{documentName}/swagger.json";
 });
-// Seed roles
-using (var scope = app.Services.CreateScope())
-{
-    var roleSeeder = scope.ServiceProvider.GetRequiredService<RoleSeeder>();
-    await roleSeeder.SeedRolesAsync();
-}
 
-// ============================
-// MIDDLEWARE PIPELINE
-// ============================
-
-// Global error handling
-app.UseExceptionHandler("/error");
-app.MapGet("/error", () => Results.Problem("An unexpected error occurred"));
-
-// Favicon placeholder
-app.MapGet("/favicon.ico", () => Results.NoContent());
-
-// Health check
-app.MapGet("/", () => Results.Ok("TalentFlow API is running"));
-app.MapGet("/health", () => Results.Ok("Healthy"));
-
-// Swagger
-app.UseSwagger();
 app.UseSwaggerUI(c =>
 {
     c.SwaggerEndpoint("/swagger/v1/swagger.json", "TalentFlow API v1");
+    c.RoutePrefix = string.Empty; // serve Swagger UI at root "/"
 });
 
-// Authentication & Authorization
+
+// ✅ Middleware order
 app.UseAuthentication();
 app.UseAuthorization();
 
-// Controllers
+// ✅ Map controllers
 app.MapControllers();
 
-// ============================
-// RUN APP (Render-friendly)
-// ============================
-var port = Environment.GetEnvironmentVariable("PORT") ?? "8080";
-app.Run($"http://0.0.0.0:{port}");
+app.Run();

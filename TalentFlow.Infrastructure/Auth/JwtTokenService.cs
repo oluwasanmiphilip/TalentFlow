@@ -1,13 +1,15 @@
-﻿using Microsoft.Extensions.Configuration;
+﻿// File Path: TalentFlow.Infrastructure/Auth/JwtTokenService.cs
+
+using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
-using TalentFlow.Application.Common.Interfaces;
+using TalentFlow.Domain.Entities;
 
 namespace TalentFlow.Infrastructure.Auth
 {
-    public class JwtTokenService : IJwtTokenService
+    public class JwtTokenService
     {
         private readonly IConfiguration _configuration;
 
@@ -18,13 +20,6 @@ namespace TalentFlow.Infrastructure.Auth
 
         public string GenerateToken(Guid learnerId, string email, string roleName)
         {
-            if (learnerId == Guid.Empty)
-                throw new ArgumentException("LearnerId cannot be null or empty", nameof(learnerId));
-            if (string.IsNullOrWhiteSpace(email))
-                throw new ArgumentException("Email cannot be null or empty", nameof(email));
-            if (string.IsNullOrWhiteSpace(roleName))
-                throw new ArgumentException("RoleName cannot be null or empty", nameof(roleName));
-
             var claims = new[]
             {
                 new Claim("learner_id", learnerId.ToString()),
@@ -32,7 +27,6 @@ namespace TalentFlow.Infrastructure.Auth
                 new Claim(ClaimTypes.Role, roleName)
             };
 
-            // ✅ Ensure JWT secret exists
             var secret = _configuration["Jwt:Secret"]
                          ?? throw new InvalidOperationException("JWT secret is not configured");
 
@@ -47,6 +41,24 @@ namespace TalentFlow.Infrastructure.Auth
                 signingCredentials: creds);
 
             return new JwtSecurityTokenHandler().WriteToken(token);
+        }
+
+        // ✅ Wrapper for consistency
+        public string GenerateAToken(Guid learnerId, string email, string roleName)
+        {
+            return GenerateToken(learnerId, email, roleName);
+        }
+
+        public RefreshToken GenerateRefreshToken(Guid userId, string email, string role)
+        {
+            return new RefreshToken
+            {
+                UserId = userId,
+                Email = email,
+                Role = role,
+                Token = Convert.ToBase64String(Guid.NewGuid().ToByteArray()),
+                ExpiresAt = DateTime.UtcNow.AddDays(7)
+            };
         }
     }
 }
