@@ -24,7 +24,7 @@ namespace TalentFlow.API.Controllers
             _jwt = jwt;
             _refreshRepo = refreshRepo;
         }
-
+        [AllowAnonymous]
         [HttpPost("register")]
         public async Task<IActionResult> Register([FromBody] RegisterUserCommand command)
         {
@@ -46,7 +46,7 @@ namespace TalentFlow.API.Controllers
                 refreshToken = refreshToken.Token
             }, "User registered successfully", 201));
         }
-
+        [AllowAnonymous]
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginUserCommand command)
         {
