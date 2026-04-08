@@ -143,6 +143,13 @@ builder.Services.AddAuthorization(options =>
     options.AddPolicy("RequireLearner", p => p.RequireRole("Learner"));
 });
 
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowFrontend", policy =>
+        policy.WithOrigins("https://your-frontend.onrender.com")
+              .AllowAnyHeader()
+              .AllowAnyMethod());
+});
 // ============================
 // BUILD APP
 // ============================
@@ -158,13 +165,7 @@ var app = builder.Build();
 }*/
 
 
-builder.Services.AddCors(options =>
-{
-    options.AddPolicy("AllowFrontend", policy =>
-        policy.WithOrigins("https://your-frontend.onrender.com")
-              .AllowAnyHeader()
-              .AllowAnyMethod());
-});
+
 
 app.UseCors("AllowFrontend");
 
