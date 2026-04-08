@@ -118,7 +118,7 @@ builder.Services.AddAuthentication(options =>
 })
 .AddJwtBearer(options =>
 {
-    options.RequireHttpsMetadata = true;
+    options.RequireHttpsMetadata = false;
     options.SaveToken = true;
 
     options.TokenValidationParameters = new TokenValidationParameters
@@ -146,7 +146,7 @@ builder.Services.AddAuthorization(options =>
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
-        policy.WithOrigins("https://your-frontend.onrender.com")
+        policy.AllowAnyOrigin()
               .AllowAnyHeader()
               .AllowAnyMethod());
 });
@@ -188,6 +188,7 @@ app.UseSwaggerUI(c =>
 // ============================
 // SECURITY
 // ============================
+app.UseRouting();   // 🔥 ADD THIS
 app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();

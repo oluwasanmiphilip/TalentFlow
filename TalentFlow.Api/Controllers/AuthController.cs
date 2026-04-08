@@ -10,8 +10,8 @@ using TalentFlow.Application.Common.Interfaces;
 
 namespace TalentFlow.API.Controllers
 {
-    [ApiController]
     [Route("auth")]
+    [ApiController]
     public class AuthController : ControllerBase
     {
         private readonly IMediator _mediator;
