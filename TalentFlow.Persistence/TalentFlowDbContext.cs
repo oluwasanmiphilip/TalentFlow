@@ -39,7 +39,7 @@ namespace TalentFlow.Persistence
             modelBuilder.Entity<User>(entity =>
             {
                 entity.HasKey(u => u.Id);
-                entity.Property(u => u.LearnerId).IsRequired().HasColumnType("uniqueidentifier");
+                entity.Property(u => u.LearnerId).IsRequired();
                 entity.Property(u => u.Email).IsRequired().HasMaxLength(255);
                 entity.Property(u => u.FullName).IsRequired().HasMaxLength(255);
                 entity.Property(u => u.PasswordHash).IsRequired();

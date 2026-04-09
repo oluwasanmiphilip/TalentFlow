@@ -55,21 +55,19 @@ string BuildConnectionString(string databaseUrl)
 var databaseUrl = Environment.GetEnvironmentVariable("DATABASE_URL");
 
 var connectionString = !string.IsNullOrEmpty(databaseUrl)
-    ? BuildConnectionString(databaseUrl)
+    ? new Npgsql.NpgsqlConnectionStringBuilder(databaseUrl)
+    {
+        SslMode = Npgsql.SslMode.Require,
+        
+    }.ToString()
     : builder.Configuration.GetConnectionString("DefaultConnection");
-
-if (string.IsNullOrEmpty(connectionString))
-    throw new Exception("Database connection not configured");
 
 builder.Services.AddDbContext<TalentFlowDbContext>(options =>
     options.UseNpgsql(connectionString, npgsqlOptions =>
     {
         npgsqlOptions.EnableRetryOnFailure(5);
-        // ✅ Specify migrations assembly
-        npgsqlOptions.MigrationsAssembly("TalentFlow.Persistence");
     })
 );
-
 
 // ============================
 // REPOSITORIES
@@ -128,7 +126,7 @@ builder.Services.AddAuthentication(options =>
 })
 .AddJwtBearer(options =>
 {
-    options.RequireHttpsMetadata = false; // 🔥 FIXED
+    options.RequireHttpsMetadata = true; // 🔥 FIXED
     options.SaveToken = true;
 
     options.TokenValidationParameters = new TokenValidationParameters

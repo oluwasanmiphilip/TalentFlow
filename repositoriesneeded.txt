@@ -1,0 +1,10 @@
+//Do not delete. Keep adding repositories as needed for other entities like exams, answers, grades, assignments, messages, chats, files, events, etc.
+//Note: The following repositories are placeholders and should be implemented as needed 
+//builder.Services.AddScoped<IExamRepository, ExamRepository>();
+//builder.Services.AddScoped<IAnswerRepository, AnswerRepository>();
+//builder.Services.AddScoped<IGradeRepository, GradeRepository>();
+//builder.Services.AddScoped<IAssignmentRepository, AssignmentRepository>();
+//builder.Services.AddScoped<IMessageRepository, MessageRepository>();
+//builder.Services.AddScoped<IChatRepository, ChatRepository>();
+//builder.Services.AddScoped<IFileRepository, FileRepository>();
+//builder.Services.AddScoped<IEventRepository, EventRepository>();
