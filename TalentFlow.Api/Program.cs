@@ -68,6 +68,7 @@ builder.Services.AddDbContext<TalentFlowDbContext>(options =>
     })
 );
 
+
 // ============================
 // REPOSITORIES
 // ============================
