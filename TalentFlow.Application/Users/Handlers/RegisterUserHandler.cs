@@ -41,7 +41,7 @@ namespace TalentFlow.Application.Users.Handlers
             return new UserDto
             {
                 Id = user.Id,
-                LearnerId = user.LearnerId,
+                //LearnerId = user.LearnerId,
                 Email = user.Email,
                 FullName = user.FullName,
                 Role = user.Role

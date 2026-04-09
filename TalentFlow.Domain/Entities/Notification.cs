@@ -24,7 +24,7 @@ namespace TalentFlow.Domain.Entities
 
         // Sent status
         public bool IsSent { get; private set; } = false;
-        public DateTime? SentAt { get; private set; }
+        public DateTime? SentAt { get; set; }
 
         // Constructors
         public Notification() { }

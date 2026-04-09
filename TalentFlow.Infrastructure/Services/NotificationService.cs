@@ -16,12 +16,14 @@ namespace TalentFlow.Infrastructure.Services
         // Send a new notification
         public async Task SendAsync(NotificationMessage notificationMessage)
         {
-            // ✅ LearnerId is already Guid
             var notification = new Notification(notificationMessage.LearnerId, notificationMessage.Message);
+            notification.MarkAsSent(); // ✅ sets SentAt internally
 
             await _context.Notifications.AddAsync(notification);
             await _context.SaveChangesAsync();
+
         }
+
 
         // Mark an existing notification as sent
         public async Task SendNotificationAsync(Guid notificationId, CancellationToken cancellationToken = default)

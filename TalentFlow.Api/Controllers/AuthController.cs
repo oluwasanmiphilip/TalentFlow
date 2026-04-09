@@ -33,13 +33,13 @@ namespace TalentFlow.API.Controllers
             if (userDto == null)
                 return BadRequest(ApiResponse<string>.Fail("Invalid registration data", 400));
 
-            var accessToken = _jwt.GenerateToken(userDto.LearnerId, userDto.Email, userDto.Role);
-            var refreshToken = _jwt.GenerateRefreshToken(userDto.LearnerId, userDto.Email, userDto.Role);
+            // ✅ Pass all three required arguments: Id, Email, Role
+            var accessToken = _jwt.GenerateToken(userDto.Id, userDto.Email, userDto.Role);
+            var refreshToken = _jwt.GenerateRefreshToken(userDto.Id, userDto.Email, userDto.Role);
             _refreshRepo.Save(refreshToken);
 
             return Created("auth/register", ApiResponse<object>.Success(new
             {
-                learner_id = userDto.LearnerId,
                 full_name = userDto.FullName,
                 email = userDto.Email,
                 role = userDto.Role,
@@ -47,6 +47,7 @@ namespace TalentFlow.API.Controllers
                 refreshToken = refreshToken.Token
             }, "User registered successfully", 201));
         }
+
         [AllowAnonymous]
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginUserCommand command)
@@ -55,13 +56,13 @@ namespace TalentFlow.API.Controllers
             if (userDto == null)
                 return Unauthorized(ApiResponse<string>.Fail("Invalid email or password", 401));
 
-            var accessToken = _jwt.GenerateToken(userDto.LearnerId, userDto.Email, userDto.Role);
-            var refreshToken = _jwt.GenerateRefreshToken(userDto.LearnerId, userDto.Email, userDto.Role);
+            // ✅ Pass all three required arguments: Id, Email, Role
+            var accessToken = _jwt.GenerateToken(userDto.Id, userDto.Email, userDto.Role);
+            var refreshToken = _jwt.GenerateRefreshToken(userDto.Id, userDto.Email, userDto.Role);
             _refreshRepo.Save(refreshToken);
 
             return Ok(ApiResponse<object>.Success(new
             {
-                learner_id = userDto.LearnerId,
                 full_name = userDto.FullName,
                 email = userDto.Email,
                 role = userDto.Role,
@@ -69,6 +70,7 @@ namespace TalentFlow.API.Controllers
                 refreshToken = refreshToken.Token
             }, "Login successful"));
         }
+
 
         [HttpPost("refresh")]
         public IActionResult Refresh([FromBody] string refreshToken)

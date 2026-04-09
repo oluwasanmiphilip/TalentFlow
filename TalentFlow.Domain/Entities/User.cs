@@ -12,7 +12,7 @@ namespace TalentFlow.Domain.Entities
         public Guid Id { get; private set; }
 
         // Business identifiers
-        public Guid LearnerId { get; private set; }   // ✅ Now a Guid
+        public Guid LearnerId { get; private set; } = Guid.NewGuid(); // ✅ Now a Guid
         public string Email { get; private set; } = string.Empty;
         public string FullName { get; private set; } = string.Empty;
 
