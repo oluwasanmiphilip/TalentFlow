@@ -1,4 +1,6 @@
-﻿using MediatR;
+﻿using System.Threading;
+using System.Threading.Tasks;
+using MediatR;
 using TalentFlow.Application.Users.DTOs;
 using TalentFlow.Application.Common.Interfaces;
 using TalentFlow.Domain.Entities;
@@ -17,15 +19,17 @@ namespace TalentFlow.Application.Users.Commands
 
         public async Task<UserDto> Handle(RegisterUserCommand request, CancellationToken cancellationToken)
         {
-            // Hash password
             var passwordHash = BCrypt.Net.BCrypt.HashPassword(request.Password);
 
-            // Use domain constructor (LearnerId generated internally)
+            // ✅ Pass phoneNumber as the last argument
             var user = new User(
                 request.Email,
                 request.FullName,
                 passwordHash,
-                request.Role
+                request.Role,
+                request.Discipline,
+                request.CohortYear,
+                request.PhoneNumber
             );
 
             await _userRepository.AddAsync(user, cancellationToken);
@@ -33,10 +37,12 @@ namespace TalentFlow.Application.Users.Commands
             return new UserDto
             {
                 Id = user.Id,
-                //LearnerId = user.LearnerId,
                 Email = user.Email,
                 FullName = user.FullName,
-                Role = user.Role
+                Role = user.Role,
+                Discipline = user.Discipline,
+                CohortYear = user.CohortYear,
+                PhoneNumber = user.PhoneNumber // ✅ include in DTO
             };
         }
     }

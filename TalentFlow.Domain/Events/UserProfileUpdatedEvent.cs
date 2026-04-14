@@ -1,16 +1,16 @@
+using System;
 using TalentFlow.Domain.Common;
 using TalentFlow.Domain.Entities;
 
 namespace TalentFlow.Domain.Events
 {
-    public class UserProfileUpdatedDomainEvent : IDomainEvent
+    public class UserProfileUpdatedEvent : DomainEvent
     {
         public User User { get; }
-        public DateTime OccurredOn { get; } = DateTime.UtcNow;
 
-        public UserProfileUpdatedDomainEvent(User user)
+        public UserProfileUpdatedEvent(User user)
         {
-            User = user;
+            User = user ?? throw new ArgumentNullException(nameof(user));
         }
     }
 }

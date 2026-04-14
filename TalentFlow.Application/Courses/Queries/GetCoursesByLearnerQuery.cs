@@ -5,11 +5,12 @@ namespace TalentFlow.Application.Courses.Queries
 {
     public class GetCoursesByLearnerQuery : IRequest<List<CourseDto>>
     {
-        public Guid LearnerId { get; }
+        public string LearnerId { get; }
 
-        public GetCoursesByLearnerQuery(Guid learnerId)   // ✅ constructor
+        public GetCoursesByLearnerQuery(string learnerId)
         {
             LearnerId = learnerId;
         }
     }
+
 }

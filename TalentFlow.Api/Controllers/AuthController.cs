@@ -1,120 +1,79 @@
-﻿// File Path: TalentFlow.API/Controllers/AuthController.cs
-
-using MediatR;
+﻿using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using TalentFlow.Application.Common.Models;
+using TalentFlow.Application.Common.Services;
+using TalentFlow.Application.Otp.Commands;
 using TalentFlow.Application.Users.Commands;
-using TalentFlow.Infrastructure.Auth;
-using TalentFlow.Application.Common.Interfaces;
 
-namespace TalentFlow.API.Controllers
+[ApiController]
+[Route("api/[controller]")]
+public class AuthController : ControllerBase
 {
-    
-    [ApiController]
-    [Route("api/[controller]")]
-    public class AuthController : ControllerBase
+    private readonly IMediator _mediator;
+    private readonly TokenService _tokenService;
+
+    public AuthController(IMediator mediator, TokenService tokenService)
     {
-        private readonly IMediator _mediator;
-        private readonly JwtTokenService _jwt;
-        private readonly IRefreshTokenRepository _refreshRepo;
+        _mediator = mediator;
+        _tokenService = tokenService;
+    }
 
-        public AuthController(IMediator mediator, JwtTokenService jwt, IRefreshTokenRepository refreshRepo)
+    [AllowAnonymous]
+    [HttpPost("register")]
+    public async Task<IActionResult> Register([FromBody] RegisterUserCommand command)
+    {
+        var userDto = await _mediator.Send(command);
+        if (userDto == null)
+            return BadRequest(ApiResponse<string>.Fail("Invalid registration data", 400));
+
+        var otpCode = await _mediator.Send(new GenerateOtpCommand
         {
-            _mediator = mediator;
-            _jwt = jwt;
-            _refreshRepo = refreshRepo;
-        }
-        [AllowAnonymous]
-        [HttpPost("register")]
-        public async Task<IActionResult> Register([FromBody] RegisterUserCommand command)
+            UserId = userDto.Id,
+            Channel = "email"
+        });
+
+        return Created("auth/register", ApiResponse<object>.Success(new
         {
-            var userDto = await _mediator.Send(command);
-            if (userDto == null)
-                return BadRequest(ApiResponse<string>.Fail("Invalid registration data", 400));
+            id = userDto.Id,
+            full_name = userDto.FullName,
+            email = userDto.Email,
+            role = userDto.Role,
+            otp = otpCode
+        }, "User registered successfully. Please verify OTP.", 201));
+    }
 
-            // ✅ Pass all three required arguments: Id, Email, Role
-            var accessToken = _jwt.GenerateToken(userDto.Id, userDto.Email, userDto.Role);
-            var refreshToken = _jwt.GenerateRefreshToken(userDto.Id, userDto.Email, userDto.Role);
-            _refreshRepo.Save(refreshToken);
+    [AllowAnonymous]
+    [HttpPost("login")]
+    public async Task<IActionResult> Login([FromBody] LoginUserCommand command)
+    {
+        var userDto = await _mediator.Send(command);
+        if (userDto == null)
+            return Unauthorized(ApiResponse<string>.Fail("Invalid email or password", 401));
 
-            return Created("auth/register", ApiResponse<object>.Success(new
-            {
-                id = userDto.Id,
-                full_name = userDto.FullName,
-                email = userDto.Email,
-                role = userDto.Role,
-                accessToken,
-                refreshToken = refreshToken.Token
-            }, "User registered successfully", 201));
-        }
-
-        [AllowAnonymous]
-        [HttpPost("login")]
-        public async Task<IActionResult> Login([FromBody] LoginUserCommand command)
+        await _mediator.Send(new GenerateOtpCommand
         {
-            var userDto = await _mediator.Send(command);
-            if (userDto == null)
-                return Unauthorized(ApiResponse<string>.Fail("Invalid email or password", 401));
+            UserId = userDto.Id,
+            Channel = "email"
+        });
 
-            // ✅ Pass all three required arguments: Id, Email, Role
-            var accessToken = _jwt.GenerateToken(userDto.Id, userDto.Email, userDto.Role);
-            var refreshToken = _jwt.GenerateRefreshToken(userDto.Id, userDto.Email, userDto.Role);
-            _refreshRepo.Save(refreshToken);
+        return Ok(ApiResponse<string>.Success("Login successful. OTP sent to your email."));
+    }
 
-            return Ok(ApiResponse<object>.Success(new
-            {
-                id = userDto.Id,
-                full_name = userDto.FullName,
-                email = userDto.Email,
-                role = userDto.Role,
-                accessToken,
-                refreshToken = refreshToken.Token
-            }, "Login successful"));
-        }
+    [AllowAnonymous]
+    [HttpPost("verify-otp")]
+    public async Task<IActionResult> VerifyOtp([FromBody] ValidateOtpCommand command)
+    {
+        var userDto = await _mediator.Send(command);
+        if (userDto == null)
+            return BadRequest(ApiResponse<string>.Fail("Invalid or expired OTP", 400));
 
+        var tokens = _tokenService.IssueTokens(userDto);
 
-        [HttpPost("refresh")]
-        public IActionResult Refresh([FromBody] string refreshToken)
+        return Ok(ApiResponse<object>.Success(new
         {
-            var storedToken = _refreshRepo.GetByToken(refreshToken);
-            if (storedToken == null || storedToken.IsRevoked || storedToken.ExpiresAt < DateTime.UtcNow)
-                return Unauthorized(ApiResponse<string>.Fail("Invalid or expired refresh token", 401));
-
-            var newAccessToken = _jwt.GenerateAToken(storedToken.UserId, storedToken.Email, storedToken.Role);
-
-            return Ok(ApiResponse<object>.Success(new
-            {
-                token = newAccessToken,
-                expiresIn = 3600,
-                tokenType = "Bearer"
-            }, "Token refreshed successfully"));
-        }
-
-        [HttpPost("logout")]
-        public IActionResult Logout([FromBody] string refreshToken)
-        {
-            var storedToken = _refreshRepo.GetByToken(refreshToken);
-            if (storedToken == null)
-                return NotFound(ApiResponse<string>.Fail("Refresh token not found", 404));
-
-            _refreshRepo.Revoke(refreshToken);
-            return Ok(ApiResponse<string>.Success("User logged out successfully"));
-        }
-
-        [Authorize(Policy = "RequireLearner")]
-        [HttpGet("me/dashboard")]
-        public IActionResult GetDashboard()
-        {
-            var learnerId = User.FindFirst("learner_id")?.Value;
-            if (learnerId == null)
-                return Unauthorized(ApiResponse<string>.Fail("Unauthorized access", 401));
-
-            return Ok(ApiResponse<object>.Success(new
-            {
-                learner_id = learnerId,
-                dashboard = new { courses = new[] { "Course A", "Course B" } }
-            }, "Dashboard retrieved successfully"));
-        }
+            accessToken = tokens.accessToken,
+            refreshToken = tokens.refreshToken
+        }, "OTP verified successfully. Tokens issued."));
     }
 }

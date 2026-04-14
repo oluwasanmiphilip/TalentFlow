@@ -1,42 +1,50 @@
-﻿// Domain/Entities/Enrollment.cs
-using System;
-using System.ComponentModel.DataAnnotations.Schema;
+﻿using System.ComponentModel.DataAnnotations.Schema;
+using TalentFlow.Domain.Common;
+using TalentFlow.Domain.Events;
 
-namespace TalentFlow.Domain.Entities
+[Table("enrollment")]
+public class Enrollment : EntityBase
 {
-    [Table("enrollment")] // matches EF query
-    public class Enrollment
+    public Guid Id { get; private set; }
+    public Guid CourseId { get; private set; }
+    public Guid UserId { get; private set; }
+    public DateTime EnrolledAt { get; private set; }
+    public string Role { get; private set; } = "Learner";
+    public Guid? FirstLessonId { get; private set; }
+
+    // Audit fields
+    public string? UpdatedBy { get; private set; }
+    public DateTime? UpdatedAt { get; private set; }
+    public string? DeletedBy { get; private set; }
+    public DateTime? DeletedAt { get; private set; }
+    public bool IsDeleted { get; private set; }
+
+    private Enrollment() { } // EF Core
+
+    public Enrollment(Guid courseId, Guid userId, string role = "Learner", Guid? firstLessonId = null)
     {
-        public Guid Id { get; private set; }
-        public Guid CourseId { get; private set; }
-        public Guid UserId { get; private set; }
-        public DateTime EnrolledAt { get; private set; }   // ✅ use EnrolledAt
-        public string? UpdatedBy { get; private set; }
-        public DateTime? UpdatedAt { get; private set; }
-        public string? DeletedBy { get; private set; }
-        public DateTime? DeletedAt { get; private set; }
-        public bool IsDeleted { get; private set; }
+        Id = Guid.NewGuid();
+        CourseId = courseId;
+        UserId = userId;
+        Role = role;
+        FirstLessonId = firstLessonId;
+        EnrolledAt = DateTime.UtcNow;
 
-        public Enrollment(Guid courseId, Guid userId)
-        {
-            Id = Guid.NewGuid();
-            CourseId = courseId;
-            UserId = userId;
-            EnrolledAt = DateTime.UtcNow;   // ✅ set EnrolledAt
-            IsDeleted = false;
-        }
+        AddDomainEvent(new UserEnrolledEvent(this));
+    }
 
-        public void Update(string updatedBy)
-        {
-            UpdatedBy = updatedBy;
-            UpdatedAt = DateTime.UtcNow;
-        }
+    public void SoftDelete(string deletedBy)
+    {
+        IsDeleted = true;
+        DeletedBy = deletedBy;
+        DeletedAt = DateTime.UtcNow;
 
-        public void SoftDelete(string deletedBy)
-        {
-            IsDeleted = true;
-            DeletedBy = deletedBy;
-            DeletedAt = DateTime.UtcNow;
-        }
+        AddDomainEvent(new EnrollmentWithdrawnEvent(this));
+    }
+
+    public void Update(string updatedBy)
+    {
+        UpdatedBy = updatedBy;
+        UpdatedAt = DateTime.UtcNow;
     }
 }

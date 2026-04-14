@@ -1,13 +1,15 @@
 ﻿using MediatR;
-using TalentFlow.Domain.Events;
 
 namespace TalentFlow.Application.Users.Events
 {
+    /// <summary>
+    /// Wraps the UserCreatedEvent so it can be published via MediatR.
+    /// </summary>
     public class UserCreatedNotification : INotification
     {
-        public TalentFlow.Domain.Events.UserCreatedDomainEvent DomainEvent { get; }
+        public UserCreatedEvent DomainEvent { get; }
 
-        public UserCreatedNotification(TalentFlow.Domain.Events.UserCreatedDomainEvent domainEvent)
+        public UserCreatedNotification(UserCreatedEvent domainEvent)
         {
             DomainEvent = domainEvent;
         }

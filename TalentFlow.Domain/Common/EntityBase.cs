@@ -4,10 +4,11 @@ namespace TalentFlow.Domain.Common
 {
     public abstract class EntityBase
     {
-        private readonly List<object> _domainEvents = new();
-        public IReadOnlyCollection<object> DomainEvents => _domainEvents.AsReadOnly();
+        private readonly List<IDomainEvent> _domainEvents = new();
 
-        protected void AddDomainEvent(object @event)
+        public IReadOnlyCollection<IDomainEvent> DomainEvents => _domainEvents.AsReadOnly();
+
+        protected void AddDomainEvent(IDomainEvent @event)
         {
             _domainEvents.Add(@event);
         }

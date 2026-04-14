@@ -3,14 +3,13 @@ using TalentFlow.Domain.Entities;
 
 namespace TalentFlow.Domain.Events
 {
-    public class UserCreatedDomainEvent : IDomainEvent
+    public class UserCreatedEvent : DomainEvent
     {
         public User User { get; }
-        public DateTime OccurredOn { get; } = DateTime.UtcNow;
 
-        public UserCreatedDomainEvent(User user)
+        public UserCreatedEvent(User user)
         {
-            User = user;
+            User = user ?? throw new ArgumentNullException(nameof(user));
         }
     }
 }

@@ -1,16 +1,16 @@
+using System;
 using TalentFlow.Domain.Common;
 using TalentFlow.Domain.Entities;
 
 namespace TalentFlow.Domain.Events
 {
-    public class NotificationSentDomainEvent : DomainEvent
+    public class NotificationSentEvent : DomainEvent
     {
         public Notification Notification { get; }
 
-        public NotificationSentDomainEvent(Notification notification)
+        public NotificationSentEvent(Notification notification)
         {
-            Notification = notification;
-            // ❌ DO NOT set OccurredOn here
+            Notification = notification ?? throw new ArgumentNullException(nameof(notification));
         }
     }
 }

@@ -1,15 +1,15 @@
 ﻿using System;
 using System.ComponentModel.DataAnnotations.Schema;
+using TalentFlow.Domain.Common;
+using TalentFlow.Domain.Events;
 
 namespace TalentFlow.Domain.Entities
 {
-    [Table("notification")] // matches EF query
-    public class Notification
+    [Table("notification")]
+    public class Notification : EntityBase
     {
         public Guid Id { get; private set; }
         public Guid UserId { get; private set; }
-
-        // Required message field
         public string Message { get; private set; } = string.Empty;
 
         // Audit fields
@@ -24,10 +24,9 @@ namespace TalentFlow.Domain.Entities
 
         // Sent status
         public bool IsSent { get; private set; } = false;
-        public DateTime? SentAt { get; set; }
+        public DateTime? SentAt { get; private set; }
 
-        // Constructors
-        public Notification() { }
+        private Notification() { } // EF Core
 
         public Notification(Guid userId, string message)
         {
@@ -53,6 +52,15 @@ namespace TalentFlow.Domain.Entities
         {
             IsSent = true;
             SentAt = DateTime.UtcNow;
+            AddDomainEvent(new NotificationSentEvent(this));
+        }
+
+        // Mark as read helper
+        public void MarkAsRead(string updatedBy)
+        {
+            UpdatedBy = updatedBy;
+            UpdatedAt = DateTime.UtcNow;
+            AddDomainEvent(new NotificationReadEvent(this));
         }
 
         // Optional update helper

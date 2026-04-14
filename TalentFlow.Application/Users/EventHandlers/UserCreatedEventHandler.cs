@@ -8,29 +8,33 @@ namespace TalentFlow.Application.Users.EventHandlers
     {
         private readonly INotificationService _notificationService;
         private readonly IEventStreamPublisher _eventStream;
+        private readonly IUserRepository _userRepository; // ✅ add repository
 
-        public UserCreatedEventHandler(INotificationService notificationService, IEventStreamPublisher eventStream)
+        public UserCreatedEventHandler(
+            INotificationService notificationService,
+            IEventStreamPublisher eventStream,
+            IUserRepository userRepository) // ✅ inject repository
         {
             _notificationService = notificationService;
             _eventStream = eventStream;
+            _userRepository = userRepository;
         }
 
         public async Task Handle(UserCreatedNotification notification, CancellationToken cancellationToken)
         {
-            var user = notification.DomainEvent.User;
+            var userId = notification.DomainEvent.UserId;
+            var user = await _userRepository.GetByIdAsync(userId, cancellationToken); // ✅ now valid
 
-            // Send welcome notification using UserId (the FK)
             await _notificationService.SendAsync(new NotificationMessage
             {
-                UserId = user.Id,   // ✅ use the primary key
+                UserId = user.Id,
                 DeepLinkUrl = "/me/profile",
                 Message = $"Welcome {user.FullName}! Your account has been created."
             });
 
-            // Publish to event stream
             await _eventStream.PublishAsync("UserCreated", new
             {
-                user_id = user.Id.ToString(),   // ✅ consistent with FK
+                user_id = user.Id.ToString(),
                 email = user.Email,
                 name = user.FullName,
                 created_at = DateTime.UtcNow

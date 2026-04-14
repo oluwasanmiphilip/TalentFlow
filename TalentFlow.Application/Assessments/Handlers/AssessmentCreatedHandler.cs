@@ -4,7 +4,7 @@ using TalentFlow.Application.Assessments.Events;
 
 namespace TalentFlow.Application.Assessments.Handlers
 {
-    public class AssessmentCreatedHandler : INotificationHandler<AssessmentCreatedNotification>
+    public class AssessmentCreatedHandler : INotificationHandler<AssessmentCreatedEvent>
     {
         private readonly ILogger<AssessmentCreatedHandler> _logger;
 
@@ -13,12 +13,12 @@ namespace TalentFlow.Application.Assessments.Handlers
             _logger = logger;
         }
 
-        public Task Handle(AssessmentCreatedNotification notification, CancellationToken cancellationToken)
+        public Task Handle(AssessmentCreatedEvent notification, CancellationToken cancellationToken)
         {
             _logger.LogInformation(
                 "Assessment created: Id={AssessmentId}, OccurredOn={OccurredOn}",
-                notification.DomainEvent.Assessment.Id,
-                notification.DomainEvent.OccurredOn);
+                notification.AssessmentId,
+                notification.OccurredOn);
 
             // TODO: trigger downstream workflows (analytics, audit, etc.)
             return Task.CompletedTask;

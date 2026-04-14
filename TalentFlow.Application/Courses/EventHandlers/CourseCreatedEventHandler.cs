@@ -1,6 +1,6 @@
 ﻿using MediatR;
 using Microsoft.Extensions.Logging;
-using TalentFlow.Application.Courses.Events;
+using TalentFlow.Domain.Events;
 
 namespace TalentFlow.Application.Courses.Handlers
 {
@@ -16,7 +16,7 @@ namespace TalentFlow.Application.Courses.Handlers
         public Task Handle(CourseCreatedEvent notification, CancellationToken cancellationToken)
         {
             _logger.LogInformation("Course created with ID {CourseId} at {OccurredOn}",
-                notification.CourseId,
+                notification.Course.Id,       // ✅ now valid
                 notification.OccurredOn);
 
             // TODO: trigger onboarding, send notification, etc.

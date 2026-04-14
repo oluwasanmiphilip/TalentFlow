@@ -1,17 +1,30 @@
 ﻿// File Path: TalentFlow.Persistence/TalentFlowDbContext.cs
 
 using Microsoft.EntityFrameworkCore;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using TalentFlow.Domain.Common;
 using TalentFlow.Domain.Entities;
 
 namespace TalentFlow.Persistence
 {
     public class TalentFlowDbContext : DbContext
     {
+        private readonly DomainEventDispatcher _dispatcher;
+
+        public TalentFlowDbContext(DbContextOptions<TalentFlowDbContext> options, DomainEventDispatcher dispatcher)
+            : base(options)
+        {
+            _dispatcher = dispatcher;
+        }
+
+        // ✅ Used at design-time (migrations)
         public TalentFlowDbContext(DbContextOptions<TalentFlowDbContext> options)
             : base(options)
         {
+            // No dispatcher needed for tooling
         }
-
         // Existing DbSets
         public DbSet<Course> Courses { get; set; } = null!;
         public DbSet<User> Users { get; set; } = null!;
@@ -27,9 +40,8 @@ namespace TalentFlow.Persistence
         public DbSet<Team> Teams { get; set; } = null!;
         public DbSet<Certificate> Certificates { get; set; } = null!;
         public DbSet<Video> Videos { get; set; } = null!;
-
-        // 👇 RefreshToken DbSet
         public DbSet<RefreshToken> RefreshTokens { get; set; } = null!;
+        public DbSet<OtpCode> OtpCodes { get; set; } = null!;
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -57,6 +69,14 @@ namespace TalentFlow.Persistence
                 entity.Property(rt => rt.IsRevoked).IsRequired();
             });
 
+            // Optional: configure OTP table
+            modelBuilder.Entity<OtpCode>(entity =>
+            {
+                entity.ToTable("otp_codes");
+                entity.HasKey(o => o.Id);
+                entity.Property(o => o.Code).IsRequired().HasMaxLength(6);
+            });
+
             modelBuilder.Entity<Assessment>().Ignore(a => a.Questions);
 
             // ✅ Seed roles
@@ -69,5 +89,39 @@ namespace TalentFlow.Persistence
             modelBuilder.ApplyConfigurationsFromAssembly(typeof(TalentFlowDbContext).Assembly);
         }
 
+        // 👇 Domain Event Dispatching
+        public override int SaveChanges()
+        {
+            var result = base.SaveChanges();
+            DispatchDomainEvents();
+            return result;
+        }
+
+        public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+        {
+            var result = await base.SaveChangesAsync(cancellationToken);
+            DispatchDomainEvents();
+            return result;
+        }
+
+        private void DispatchDomainEvents()
+        {
+            var entitiesWithEvents = ChangeTracker
+                .Entries<EntityBase>()
+                .Where(e => e.Entity.DomainEvents.Any())
+                .Select(e => e.Entity)
+                .ToList();
+
+            foreach (var entity in entitiesWithEvents)
+            {
+                var events = entity.DomainEvents.ToList();
+                entity.ClearDomainEvents();
+
+                foreach (var domainEvent in events)
+                {
+                    _dispatcher.Dispatch(domainEvent);
+                }
+            }
+        }
     }
 }

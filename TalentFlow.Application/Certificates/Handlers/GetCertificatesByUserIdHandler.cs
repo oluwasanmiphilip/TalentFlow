@@ -21,13 +21,14 @@ namespace TalentFlow.Application.Certificates.Handlers
         }
 
         public async Task<List<CertificateDto>> Handle(
-            GetCertificatesByUserIdQuery request,
-            CancellationToken cancellationToken)
+    GetCertificatesByUserIdQuery request,
+    CancellationToken cancellationToken)
         {
             var certificates = await _certificateRepository
-                .GetByLearnerIdAsync(request.UserId, cancellationToken);
+                .GetCertificatesByLearnerIdAsync(request.UserId, cancellationToken);
 
-            return certificates.Select(c => c.ToDto()).ToList(); // ✅ now works
+            return certificates.Select(c => c.ToDto()).ToList();
         }
+
     }
 }

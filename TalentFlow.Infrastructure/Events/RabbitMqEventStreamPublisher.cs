@@ -11,18 +11,15 @@ namespace TalentFlow.Infrastructure.Events
 
         public RabbitMqEventStreamPublisher(string hostName)
         {
-            var factory = new ConnectionFactory() { HostName = hostName };
-
-            // NEW in v7
-            _connection = factory.CreateConnectionAsync().GetAwaiter().GetResult();
+            var factory = new ConnectionFactory { HostName = hostName };
+            _connection = factory.CreateConnection(); // ✅ synchronous
         }
 
-        public async Task PublishAsync(string eventName, object payload, CancellationToken cancellationToken = default)
+        public Task PublishAsync(string eventName, object payload, CancellationToken cancellationToken = default)
         {
-            // NEW in v7
-            using var channel = await _connection.CreateChannelAsync();
+            using var channel = _connection.CreateModel(); // ✅ synchronous
 
-            await channel.QueueDeclareAsync(
+            channel.QueueDeclare(
                 queue: "notifications",
                 durable: false,
                 exclusive: false,
@@ -33,11 +30,14 @@ namespace TalentFlow.Infrastructure.Events
             var message = JsonSerializer.Serialize(new { Event = eventName, Payload = payload });
             var body = Encoding.UTF8.GetBytes(message);
 
-            await channel.BasicPublishAsync(
+            channel.BasicPublish(
                 exchange: "",
                 routingKey: "notifications",
+                basicProperties: null,
                 body: body
             );
+
+            return Task.CompletedTask;
         }
     }
 }

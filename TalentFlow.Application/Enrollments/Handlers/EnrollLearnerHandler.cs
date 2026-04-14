@@ -24,7 +24,9 @@ namespace TalentFlow.Application.Enrollments.Handlers
             var course = await _courseRepo.GetByIdAsync(request.CourseId, ct);
             if (course == null || course.IsDeleted) return false;
 
-            var enrollment = new Enrollment(request.CourseId, request.UserId);
+            var enrollment = new Enrollment(request.CourseId, request.UserId, "Learner");
+
+
             enrollment.Update(request.EnrolledBy);
 
             await _enrollmentRepo.AddAsync(enrollment, ct);

@@ -1,14 +1,19 @@
-using MediatR;
+using Asp.Versioning;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Serilog;
 using System.Text;
 using TalentFlow.Application.Common.Interfaces;
+using TalentFlow.Application.Otp.Handlers;
 using TalentFlow.Application.Users.Commands;
 using TalentFlow.Infrastructure.Auth;
+using TalentFlow.Infrastructure.Email;
 using TalentFlow.Infrastructure.Events;
+using TalentFlow.Infrastructure.Messaging;
 using TalentFlow.Infrastructure.Security;
 using TalentFlow.Infrastructure.Services;
+using TalentFlow.Infrastructure.Sms;
 using TalentFlow.Persistence;
 using TalentFlow.Persistence.Repositories;
 
@@ -19,6 +24,7 @@ var builder = WebApplication.CreateBuilder(args);
 // ============================
 builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
+builder.Host.UseSerilog((ctx, lc) => lc.ReadFrom.Configuration(ctx.Configuration));
 
 // ============================
 // CONTROLLERS
@@ -26,48 +32,20 @@ builder.Logging.AddConsole();
 builder.Services.AddControllers();
 
 // ============================
-// SWAGGER
+// DISPATCHER
 // ============================
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddScoped<DomainEventDispatcher>();
 
 // ============================
-// DATABASE CONFIG (FIXED)
+// DATABASE CONFIG (Production only)
 // ============================
-string BuildConnectionString(string databaseUrl)
+var connectionString = builder.Configuration.GetSection("ConnectionStrings")["Production"];
+
+builder.Services.AddDbContext<TalentFlowDbContext>((serviceProvider, options) =>
 {
-    if (string.IsNullOrEmpty(databaseUrl))
-        throw new Exception("DATABASE_URL is not set");
-
-    // 🔥 Normalize Render URL
-    databaseUrl = databaseUrl.Replace("postgresql://", "postgres://");
-
-    var uri = new Uri(databaseUrl);
-    var userInfo = uri.UserInfo.Split(':');
-
-    var username = userInfo[0];
-    var password = Uri.UnescapeDataString(userInfo[1]);
-    var database = uri.AbsolutePath.TrimStart('/');
-
-    return $"Host={uri.Host};Port=5432;Database={database};Username={username};Password={password};SSL Mode=Require;Trust Server Certificate=true;";
-}
-
-var databaseUrl = Environment.GetEnvironmentVariable("DATABASE_URL");
-
-var connectionString = !string.IsNullOrEmpty(databaseUrl)
-    ? new Npgsql.NpgsqlConnectionStringBuilder(databaseUrl)
-    {
-        SslMode = Npgsql.SslMode.Require,
-        
-    }.ToString()
-    : builder.Configuration.GetConnectionString("DefaultConnection");
-
-builder.Services.AddDbContext<TalentFlowDbContext>(options =>
-    options.UseNpgsql(connectionString, npgsqlOptions =>
-    {
-        npgsqlOptions.EnableRetryOnFailure(5);
-    })
-);
+    options.UseNpgsql(connectionString, npgsqlOptions => npgsqlOptions.EnableRetryOnFailure(5));
+    options.UseApplicationServiceProvider(serviceProvider);
+});
 
 // ============================
 // REPOSITORIES
@@ -85,19 +63,44 @@ builder.Services.AddScoped<IAssessmentRepository, AssessmentRepository>();
 builder.Services.AddScoped<IEnrollmentRepository, EnrollmentRepository>();
 builder.Services.AddScoped<IVideoRepository, VideoRepository>();
 builder.Services.AddScoped<ICertificateRepository, CertificateRepository>();
-
-// ============================
-// EVENT STREAM
-// ============================
-builder.Services.AddScoped<IEventStreamPublisher, EventStreamPublisher>();
+builder.Services.AddScoped<IOtpRepository, OtpRepository>();
 
 // ============================
 // SERVICES
 // ============================
+builder.Services.AddScoped<IEventStreamPublisher, EventStreamPublisher>();
 builder.Services.AddScoped<IPasswordHasher, PasswordHasher>();
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<JwtTokenService>();
+builder.Services.AddScoped<OtpDeliveryHandler>();
+
+// ============================
+// Messaging / Email / SMS (Production only)
+// ============================
+var rabbitSection = builder.Configuration.GetSection("RabbitMQ:Production");
+var rabbitHost = rabbitSection["Host"];
+var rabbitPort = int.Parse(rabbitSection["Port"]);
+var rabbitUser = rabbitSection["UserName"];
+var rabbitPass = rabbitSection["Password"];
+
+builder.Services.AddSingleton<IMessageBus>(sp =>
+    new RabbitMqMessageBus(rabbitHost, rabbitPort, rabbitUser, rabbitPass));
+
+builder.Services.AddTransient<IEmailService>(sp =>
+    new SendGridEmailService(builder.Configuration["SendGrid:Production:ApiKey"]));
+
+builder.Services.AddScoped<ISmsService>(sp =>
+{
+    var httpClientFactory = sp.GetRequiredService<IHttpClientFactory>();
+    var client = httpClientFactory.CreateClient();
+    client.BaseAddress = new Uri("https://api.ng.termii.com/");
+
+    var apiKey = builder.Configuration["Termii:Production:ApiKey"];
+    var senderId = builder.Configuration["Termii:Production:SenderId"];
+
+    return new TermiiSmsService(client, apiKey, senderId);
+});
 
 // ============================
 // MEDIATR
@@ -109,11 +112,9 @@ builder.Services.AddMediatR(cfg =>
 });
 
 // ============================
-// JWT AUTHENTICATION (FIXED)
+// JWT AUTH (Production only)
 // ============================
-var jwtSecret = Environment.GetEnvironmentVariable("JWT_SECRET")
-    ?? builder.Configuration["Jwt:Secret"];
-
+var jwtSecret = builder.Configuration["Jwt:Production:Secret"];
 if (string.IsNullOrEmpty(jwtSecret))
     throw new Exception("JWT Secret not configured");
 
@@ -126,9 +127,8 @@ builder.Services.AddAuthentication(options =>
 })
 .AddJwtBearer(options =>
 {
-    options.RequireHttpsMetadata = true; // 🔥 FIXED
+    options.RequireHttpsMetadata = true;
     options.SaveToken = true;
-
     options.TokenValidationParameters = new TokenValidationParameters
     {
         ValidateIssuer = false,
@@ -152,7 +152,7 @@ builder.Services.AddAuthorization(options =>
 });
 
 // ============================
-// CORS (DEBUG-FRIENDLY)
+// CORS
 // ============================
 builder.Services.AddCors(options =>
 {
@@ -163,31 +163,51 @@ builder.Services.AddCors(options =>
 });
 
 // ============================
+// API VERSIONING
+// ============================
+builder.Services.AddApiVersioning(options =>
+{
+    options.DefaultApiVersion = new ApiVersion(1, 0);
+    options.AssumeDefaultVersionWhenUnspecified = true;
+    options.ReportApiVersions = true;
+});
+
+// ============================
+// NSwag
+// ============================
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddOpenApiDocument(config =>
+{
+    config.Title = "TalentFlow API";
+    config.Version = "v1";
+    config.AddSecurity("Bearer", new NSwag.OpenApiSecurityScheme
+    {
+        Type = NSwag.OpenApiSecuritySchemeType.Http,
+        Scheme = "bearer",
+        BearerFormat = "JWT",
+        In = NSwag.OpenApiSecurityApiKeyLocation.Header,
+        Name = "Authorization",
+        Description = "Enter: Bearer {your JWT token}"
+    });
+    config.OperationProcessors.Add(
+        new NSwag.Generation.Processors.Security.AspNetCoreOperationSecurityScopeProcessor("Bearer")
+    );
+});
+
+// ============================
 // BUILD APP
 // ============================
 var app = builder.Build();
 
 // ============================
-// MIDDLEWARE PIPELINE (CLEAN)
+// MIDDLEWARE
 // ============================
 app.UseCors("AllowFrontend");
-
-//app.UseExceptionHandler("/error");
-app.UseDeveloperExceptionPage();
-
-app.Map("/error", () => Results.Problem("An error occurred"));
-
-app.UseSwagger();
-app.UseSwaggerUI(c =>
-{
-    c.SwaggerEndpoint("/swagger/v1/swagger.json", "TalentFlow API v1");
-    c.RoutePrefix = string.Empty;
-});
+app.UseOpenApi();
+app.UseSwaggerUi();
 
 app.UseHttpsRedirection();
-
-app.UseRouting(); // 🔥 IMPORTANT
-
+app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();
 
@@ -198,9 +218,9 @@ app.MapControllers();
 app.MapGet("/", () => Results.Ok("TalentFlow API Running"));
 app.MapGet("/health", () => Results.Ok("Healthy"));
 
-
 // ============================
 // PORT (RENDER)
 // ============================
 var port = Environment.GetEnvironmentVariable("PORT") ?? "8080";
+Console.WriteLine($"Running in Production - Swagger available at http://0.0.0.0:{port}/swagger");
 app.Run($"http://0.0.0.0:{port}");

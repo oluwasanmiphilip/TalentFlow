@@ -1,5 +1,4 @@
-﻿// File Path: TalentFlow.Application.Common.Interfaces/IRefreshTokenRepository.cs
-
+﻿using System;
 using TalentFlow.Domain.Entities;
 
 namespace TalentFlow.Application.Common.Interfaces
@@ -9,5 +8,8 @@ namespace TalentFlow.Application.Common.Interfaces
         RefreshToken? GetByToken(string token);
         void Save(RefreshToken refreshToken);
         void Revoke(string token);
+
+        // New method: revoke all tokens for a given user
+        void RevokeAllForUser(Guid userId);
     }
 }

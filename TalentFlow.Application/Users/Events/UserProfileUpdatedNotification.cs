@@ -5,9 +5,9 @@ namespace TalentFlow.Application.Users.Events
 {
     public class UserProfileUpdatedNotification : INotification
     {
-        public TalentFlow.Domain.Events.UserProfileUpdatedDomainEvent DomainEvent { get; }
+        public TalentFlow.Domain.Events.UserProfileUpdatedEvent DomainEvent { get; }
 
-        public UserProfileUpdatedNotification(TalentFlow.Domain.Events.UserProfileUpdatedDomainEvent domainEvent)
+        public UserProfileUpdatedNotification(TalentFlow.Domain.Events.UserProfileUpdatedEvent domainEvent)
         {
             DomainEvent = domainEvent;
         }

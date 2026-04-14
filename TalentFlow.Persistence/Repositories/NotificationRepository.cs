@@ -22,6 +22,13 @@ namespace TalentFlow.Persistence.Repositories
             return await _context.Notifications.FirstOrDefaultAsync(n => n.Id == id && !n.IsDeleted, ct);
         }
 
+        public async Task<List<Notification>> GetNotificationsByUserIdAsync(Guid userId)
+        {
+            return await _context.Notifications
+                .Where(n => n.UserId == userId && !n.IsDeleted)
+                .OrderByDescending(n => n.CreatedAt)
+                .ToListAsync();
+        }
         public async Task<List<Notification>> GetByUserIdAsync(Guid userId, CancellationToken ct = default)
         {
             return await _context.Notifications

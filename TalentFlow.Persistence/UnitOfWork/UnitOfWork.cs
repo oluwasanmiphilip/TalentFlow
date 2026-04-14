@@ -47,15 +47,17 @@ namespace TalentFlow.Persistence
             {
                 switch (domainEvent)
                 {
-                    case TalentFlow.Domain.Events.UserCreatedDomainEvent userCreated:
-                        await _mediator.Publish(new TalentFlow.Application.Users.Events.UserCreatedNotification(userCreated), cancellationToken);
+                    case TalentFlow.Domain.Events.UserCreatedEvent userCreated:
+                        var appEvent = new TalentFlow.Application.Users.Events.UserCreatedEvent(userCreated.User.Id);
+                        await _mediator.Publish(new TalentFlow.Application.Users.Events.UserCreatedNotification(appEvent), cancellationToken);
                         break;
 
-                    case TalentFlow.Domain.Events.UserProfileUpdatedDomainEvent profileUpdated:
+
+                    case TalentFlow.Domain.Events.UserProfileUpdatedEvent profileUpdated:
                         await _mediator.Publish(new TalentFlow.Application.Users.Events.UserProfileUpdatedNotification(profileUpdated), cancellationToken);
                         break;
 
-                    case TalentFlow.Domain.Events.CourseCreatedDomainEvent courseCreated:
+                    case TalentFlow.Domain.Events.CourseCreatedEvent courseCreated:
                         await _mediator.Publish(new TalentFlow.Application.Courses.Events.CourseCreatedNotification(
                             new TalentFlow.Application.Courses.Events.CourseCreatedEvent(courseCreated.Course.Id)), cancellationToken);
                         break;
@@ -66,13 +68,19 @@ namespace TalentFlow.Persistence
                                 enrollmentEvent.Enrollment.Id, enrollmentEvent.Course.Id, enrollmentEvent.User.Id)), cancellationToken);
                         break;
 
-                    case TalentFlow.Domain.Events.NotificationSentDomainEvent notificationSent:
+                    case TalentFlow.Domain.Events.NotificationSentEvent notificationSent:
                         await _mediator.Publish(new TalentFlow.Application.Notifications.Events.NotificationSentEvent(notificationSent.Notification.Id), cancellationToken);
                         break;
 
                     case TalentFlow.Domain.Events.AssessmentCreatedDomainEvent assessmentCreated:
-                        await _mediator.Publish(new AssessmentCreatedNotification(assessmentCreated), cancellationToken);
-                        break;
+                        {
+                            var assessmentCreatedEvent = new TalentFlow.Application.Assessments.Events.AssessmentCreatedEvent(
+                                assessmentCreated.Assessment.Id
+                            );
+                            await _mediator.Publish(assessmentCreatedEvent, cancellationToken);
+                            break;
+                        }
+
 
                     case TalentFlow.Domain.Events.QuestionAddedDomainEvent questionAdded:
                         await _mediator.Publish(new QuestionAddedNotification(questionAdded), cancellationToken);

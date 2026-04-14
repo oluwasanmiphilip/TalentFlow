@@ -1,24 +1,33 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿// File Path: TalentFlow.API/Controllers/DashboardController.cs
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using MediatR;
 using TalentFlow.Application.Common.Models;
-using TalentFlow.Domain.Entities;
+using TalentFlow.Application.Dashboard.Queries;
 
-[ApiController]
-[Route("api/[controller]")]
-[Authorize(Policy = "RequireLearner")]
-public class DashboardController : ControllerBase
+namespace TalentFlow.API.Controllers
 {
-    [HttpGet]
-    public IActionResult GetDashboard()
+    [ApiController]
+    [Route("api/[controller]")]
+    [Authorize(Policy = "RequireLearner")]
+    public class DashboardController : ControllerBase
     {
-        var learnerId = User.FindFirst("learner_id")?.Value;
-        if (learnerId == null)
-            return Unauthorized(ApiResponse<string>.Fail("Unauthorized access", 401));
+        private readonly IMediator _mediator;
 
-        return Ok(ApiResponse<object>.Success(new
+        public DashboardController(IMediator mediator)
         {
-            learner_id = learnerId,
-            courses = new[] { "Course A", "Course B" }
-        }, "Dashboard retrieved successfully"));
+            _mediator = mediator;
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetDashboard()
+        {
+            var learnerId = User.FindFirst("learner_id")?.Value;
+            if (learnerId == null)
+                return Unauthorized(ApiResponse<string>.Fail("Unauthorized access", 401));
+
+            var dashboard = await _mediator.Send(new GetDashboardDataQuery(learnerId));
+            return Ok(ApiResponse<object>.Success(dashboard, "Dashboard retrieved successfully"));
+        }
     }
 }

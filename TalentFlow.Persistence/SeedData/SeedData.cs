@@ -12,14 +12,29 @@ namespace TalentFlow.Persistence
 
             if (!context.Users.Any())
             {
+                // Admin seed
                 var admin = new User(
-                    "admin@talentflow.com",
-                    "System Admin",
-                    BCrypt.Net.BCrypt.HashPassword("Admin123!"),
-                    "Admin"
+                    "admin@talentflow.com",                       // email
+                    "System Admin",                               // full name
+                    BCrypt.Net.BCrypt.HashPassword("Admin123!"),  // password hash
+                    "Admin",                                      // role
+                    "System Administration",                      // discipline
+                    DateTime.UtcNow.Year,                         // cohort year
+                    "+2348000000000"                              // phone number
                 );
 
-                context.Users.Add(admin);
+                // Learner seed
+                var learner = new User(
+                    "learner@talentflow.com",                     // email
+                    "Default Learner",                            // full name
+                    BCrypt.Net.BCrypt.HashPassword("Learner123!"),// password hash
+                    "Learner",                                    // role
+                    "General Studies",                            // discipline
+                    DateTime.UtcNow.Year,                         // cohort year
+                    "+2348111111111"                              // phone number
+                );
+
+                context.Users.AddRange(admin, learner);
             }
 
             await context.SaveChangesAsync();

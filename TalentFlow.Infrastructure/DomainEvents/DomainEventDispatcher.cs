@@ -21,29 +21,55 @@ namespace TalentFlow.Infrastructure.Events
             {
                 switch (domainEvent)
                 {
-                    case TalentFlow.Domain.Events.UserCreatedDomainEvent userCreated:
-                        await _mediator.Publish(new UserCreatedNotification(userCreated), ct);
-                        break;
+                    case TalentFlow.Domain.Events.UserCreatedEvent userCreated:
+                        {
+                            var userCreatedEvent = new TalentFlow.Application.Users.Events.UserCreatedEvent(userCreated.User.Id);
+                            await _mediator.Publish(userCreatedEvent, ct);
+                            break;
+                        }
 
-                    case TalentFlow.Domain.Events.UserProfileUpdatedDomainEvent profileUpdated:
-                        await _mediator.Publish(new UserProfileUpdatedNotification(profileUpdated), ct);
-                        break;
+                    case TalentFlow.Domain.Events.UserProfileUpdatedEvent profileUpdated:
+                        {
+                            var userProfileUpdatedEvent = new TalentFlow.Application.Users.Events.UserProfileUpdatedEvent(profileUpdated.User.Id);
+                            await _mediator.Publish(userProfileUpdatedEvent, ct);
+                            break;
+                        }
 
-                    case TalentFlow.Domain.Events.CourseCreatedDomainEvent courseCreated:
-                        await _mediator.Publish(new CourseCreatedNotification(new CourseCreatedEvent(courseCreated.Course.Id)), ct);
-                        break;
+                    case TalentFlow.Domain.Events.CourseCreatedEvent courseCreated:
+                        {
+                            var courseCreatedEvent = new TalentFlow.Application.Courses.Events.CourseCreatedEvent(courseCreated.Course.Id);
+                            await _mediator.Publish(courseCreatedEvent, ct);
+                            break;
+                        }
 
                     case TalentFlow.Domain.Events.CourseEnrollmentDomainEvent enrollmentEvent:
-                        await _mediator.Publish(new CourseEnrollmentNotification(new TalentFlow.Application.Enrollments.Events.CourseEnrollmentEvent(enrollmentEvent.Enrollment.Id, enrollmentEvent.Course.Id, enrollmentEvent.User.Id)), ct);
-                        break;
+                        {
+                            var courseEnrollmentEvent = new TalentFlow.Application.Enrollments.Events.CourseEnrollmentEvent(
+                                enrollmentEvent.Enrollment.Id,
+                                enrollmentEvent.Course.Id,
+                                enrollmentEvent.User.Id
+                            );
+                            await _mediator.Publish(courseEnrollmentEvent, ct);
+                            break;
+                        }
 
-                    case TalentFlow.Domain.Events.NotificationSentDomainEvent notificationSent:
-                        await _mediator.Publish(new TalentFlow.Application.Notifications.Events.NotificationSentEvent(notificationSent.Notification.Id), ct);
-                        break;
+                    case TalentFlow.Domain.Events.AssessmentCreatedDomainEvent assessmentCreated:
+                        {
+                            var assessmentCreatedEvent = new TalentFlow.Application.Assessments.Events.AssessmentCreatedEvent(assessmentCreated.Assessment.Id);
+                            await _mediator.Publish(assessmentCreatedEvent, ct);
+                            break;
+                        }
 
-                    case INotification notification:
-                        await _mediator.Publish(notification, ct);
-                        break;
+
+
+                    case TalentFlow.Domain.Events.NotificationSentEvent notificationSent:
+                        {
+                            var notificationSentEvent = new TalentFlow.Application.Notifications.Events.NotificationSentEvent(notificationSent.Notification.Id);
+                            await _mediator.Publish(notificationSentEvent, ct);
+                            break;
+                        }
+
+
 
                     default:
                         break;

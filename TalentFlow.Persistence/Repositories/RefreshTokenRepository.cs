@@ -1,5 +1,5 @@
-﻿// File Path: TalentFlow.Persistence/Repositories/RefreshTokenRepository.cs
-
+﻿using System;
+using System.Linq;
 using TalentFlow.Application.Common.Interfaces;
 using TalentFlow.Domain.Entities;
 
@@ -31,6 +31,16 @@ namespace TalentFlow.Persistence.Repositories
                 rt.IsRevoked = true;
                 _context.SaveChanges();
             }
+        }
+
+        public void RevokeAllForUser(Guid userId)
+        {
+            var tokens = _context.RefreshTokens.Where(r => r.UserId == userId).ToList();
+            foreach (var token in tokens)
+            {
+                token.IsRevoked = true;
+            }
+            _context.SaveChanges();
         }
     }
 }

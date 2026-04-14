@@ -4,32 +4,34 @@ using TalentFlow.Domain.Entities;
 
 namespace TalentFlow.Application.Courses.Commands
 {
-    public class EnrollCourseHandler : IRequestHandler<EnrollCourseCommand, bool>
+    public class EnrollCourseCommandHandler : IRequestHandler<EnrollCourseCommand, bool>
     {
-        private readonly IUserRepository _userRepository;
         private readonly ICourseRepository _courseRepository;
+        private readonly IUserRepository _userRepository;
         private readonly IUnitOfWork _unitOfWork;
 
-        public EnrollCourseHandler(IUserRepository userRepository, ICourseRepository courseRepository, IUnitOfWork unitOfWork)
+        public EnrollCourseCommandHandler(
+            ICourseRepository courseRepository,
+            IUserRepository userRepository,
+            IUnitOfWork unitOfWork)
         {
-            _userRepository = userRepository;
             _courseRepository = courseRepository;
+            _userRepository = userRepository;
             _unitOfWork = unitOfWork;
         }
 
         public async Task<bool> Handle(EnrollCourseCommand request, CancellationToken cancellationToken)
         {
-            // ✅ request.LearnerId must be Guid
-            var user = await _userRepository.GetByLearnerIdAsync(request.LearnerId, cancellationToken);
-            if (user is null) return false;
-
             var course = await _courseRepository.GetBySlugAsync(request.CourseSlug, cancellationToken);
-            if (course is null) return false;
+            if (course == null) return false;
+
+            // ✅ LearnerId is string
+            var user = await _userRepository.GetByLearnerIdAsync(request.LearnerId, cancellationToken);
+            if (user == null) return false;
 
             course.Enroll(user);
-            await _courseRepository.UpdateAsync(course, cancellationToken);
-            await _unitOfWork.SaveChangesAsync(cancellationToken);
 
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
             return true;
         }
     }

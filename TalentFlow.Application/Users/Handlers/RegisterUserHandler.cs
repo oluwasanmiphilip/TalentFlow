@@ -28,23 +28,30 @@ namespace TalentFlow.Application.Users.Handlers
         {
             var passwordHash = _passwordHasher.Hash(request.Password);
 
+            // ✅ Pass phoneNumber as the last argument
             var user = new User(
                 request.Email,
                 request.FullName,
                 passwordHash,
-                request.Role
+                request.Role,
+                request.Discipline,
+                request.CohortYear,
+                request.PhoneNumber
             );
 
             await _userRepository.AddAsync(user, cancellationToken);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
 
-            // ✅ Return only the fields you want exposed
+            // ✅ Return all relevant fields including PhoneNumber
             return new UserDto
             {
                 Id = user.Id,
                 Email = user.Email,
                 FullName = user.FullName,
-                Role = user.Role
+                Role = user.Role,
+                Discipline = user.Discipline,
+                CohortYear = user.CohortYear,
+                PhoneNumber = user.PhoneNumber
             };
         }
     }

@@ -5,59 +5,63 @@ using TalentFlow.Domain.Events;
 
 namespace TalentFlow.Domain.Entities
 {
-    [Table("user")] // matches EF query
+    [Table("user")]
     public class User : EntityBase
     {
-        // Primary key
         public Guid Id { get; private set; }
-
-        // Business identifiers
-        public Guid LearnerId { get; private set; } = Guid.NewGuid(); // ✅ Now a Guid
         public string Email { get; private set; } = string.Empty;
         public string FullName { get; private set; } = string.Empty;
-
-        // Security
         public string PasswordHash { get; private set; } = string.Empty;
         public string Role { get; private set; } = "Learner";
+
+        // Business identifiers
+        public string LearnerId { get; private set; } = $"TM-{DateTime.UtcNow.Year}-{Guid.NewGuid().ToString().Substring(0, 6)}";
+
+        // Profile fields
+        public string Discipline { get; private set; } = string.Empty;
+        public int CohortYear { get; private set; }
+        public string? ProfilePhotoUrl { get; private set; }
+        public string? Bio { get; private set; }
+        public string ProgressVisibility { get; private set; } = "private";
+        public string NotificationPrefs { get; private set; } = "{}"; // JSONB
+
+        // ✅ Added PhoneNumber for OTP delivery
+        public string PhoneNumber { get; private set; } = string.Empty;
 
         // Audit fields
         public DateTime CreatedAt { get; private set; } = DateTime.UtcNow;
         public DateTime? UpdatedAt { get; private set; }
         public string? UpdatedBy { get; private set; }
-
-        // Soft delete fields
         public bool IsDeleted { get; private set; }
         public string? DeletedBy { get; private set; }
         public DateTime? DeletedAt { get; private set; }
 
-        // EF Core constructor
-        private User() { }
+        private User() { } // EF Core
 
-        // Domain constructor
-        public User(string email, string fullName, string passwordHash, string role)
+        public User(string email, string fullName, string passwordHash, string role, string discipline, int cohortYear, string phoneNumber)
         {
-            Id = Guid.NewGuid();          // PK
-            LearnerId = Guid.NewGuid();   // ✅ Business identifier as Guid
+            Id = Guid.NewGuid();
             Email = email;
             FullName = fullName;
             PasswordHash = passwordHash;
             Role = role;
+            Discipline = discipline;
+            CohortYear = cohortYear;
+            PhoneNumber = phoneNumber;
 
-            AddDomainEvent(new UserCreatedDomainEvent(this));
+            AddDomainEvent(new UserCreatedEvent(this));
         }
 
-        // Update profile
-        public void UpdateProfile(string fullName, string email, string updatedBy)
+        public void UpdateProfile(string fullName, string email, string phoneNumber, string updatedBy)
         {
             FullName = fullName;
             Email = email;
+            PhoneNumber = phoneNumber;
             UpdatedAt = DateTime.UtcNow;
             UpdatedBy = updatedBy;
-
-            AddDomainEvent(new UserProfileUpdatedDomainEvent(this));
+            AddDomainEvent(new UserProfileUpdatedEvent(this));
         }
 
-        // Soft delete
         public void SoftDelete(string deletedBy)
         {
             IsDeleted = true;

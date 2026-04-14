@@ -34,11 +34,12 @@ public class UserController : ControllerBase
     }
 
     [HttpGet("{learnerId}/courses")]
-    public async Task<ActionResult<List<CourseDto>>> GetCoursesByLearner(Guid learnerId)
+    public async Task<ActionResult<List<CourseDto>>> GetCoursesByLearner(string learnerId)
     {
         var courses = await _mediator.Send(new GetCoursesByLearnerQuery(learnerId));
         return Ok(courses);
     }
+
 
     [HttpGet("{id}/certificates")]
     public async Task<IActionResult> GetCertificates(Guid id)
