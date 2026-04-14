@@ -16,4 +16,9 @@
     <ProjectReference Include="..\TalentFlow.Domain\TalentFlow.Domain.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="CourseProgress\Repositories\" />
+    <Folder Include="LessonProgress\Repositories\" />
+  </ItemGroup>
+
 </Project>

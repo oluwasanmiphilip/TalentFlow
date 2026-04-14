@@ -4,7 +4,11 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Serilog;
 using System.Text;
+using TalentFlow.API.Middleware;
 using TalentFlow.Application.Common.Interfaces;
+using TalentFlow.Application.CourseProgress.Repositories;
+using TalentFlow.Application.LearningProgress.Commands;
+using TalentFlow.Application.LessonProgress.Commands;
 using TalentFlow.Application.Otp.Handlers;
 using TalentFlow.Application.Users.Commands;
 using TalentFlow.Infrastructure.Auth;
@@ -32,7 +36,7 @@ builder.Host.UseSerilog((ctx, lc) => lc.ReadFrom.Configuration(ctx.Configuration
 builder.Services.AddControllers();
 
 // ============================
-// HTTP CLIENT (CRITICAL FIX)
+// HTTP CLIENT
 // ============================
 builder.Services.AddHttpClient();
 
@@ -42,7 +46,7 @@ builder.Services.AddHttpClient();
 builder.Services.AddScoped<DomainEventDispatcher>();
 
 // ============================
-// DATABASE CONFIG (Production only)
+// DATABASE CONFIG
 // ============================
 var connectionString = builder.Configuration.GetSection("ConnectionStrings")["Production"];
 
@@ -86,7 +90,7 @@ builder.Services.AddScoped<JwtTokenService>();
 builder.Services.AddScoped<OtpDeliveryHandler>();
 
 // ============================
-// Messaging / Email / SMS (Production only)
+// Messaging / Email / SMS
 // ============================
 var rabbitSection = builder.Configuration.GetSection("RabbitMQ:Production");
 
@@ -118,22 +122,23 @@ builder.Services.AddScoped<ISmsService>(sp =>
 });
 
 // ============================
-// MEDIATR
+// MEDIATR (FIXED - SINGLE REGISTRATION)
 // ============================
 builder.Services.AddMediatR(cfg =>
 {
     cfg.RegisterServicesFromAssembly(typeof(Program).Assembly);
     cfg.RegisterServicesFromAssembly(typeof(RegisterUserCommandHandler).Assembly);
+    cfg.RegisterServicesFromAssembly(typeof(UpdateVideoPositionCommand).Assembly);
 });
 
 // ============================
-// JWT AUTH (Production only)
+// JWT AUTH
 // ============================
 var jwtSecret = builder.Configuration["Jwt:Production:Secret"];
 
 if (string.IsNullOrEmpty(jwtSecret))
 {
-    throw new Exception("JWT Secret not configured - check appsettings or environment variables");
+    throw new Exception("JWT Secret not configured");
 }
 
 var key = Encoding.UTF8.GetBytes(jwtSecret);
@@ -145,7 +150,7 @@ builder.Services.AddAuthentication(options =>
 })
 .AddJwtBearer(options =>
 {
-    options.RequireHttpsMetadata = false; // allow debugging
+    options.RequireHttpsMetadata = false;
     options.SaveToken = true;
     options.TokenValidationParameters = new TokenValidationParameters
     {
@@ -191,7 +196,7 @@ builder.Services.AddApiVersioning(options =>
 });
 
 // ============================
-// NSwag
+// NSwag (Swagger)
 // ============================
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddOpenApiDocument(config =>
@@ -218,12 +223,9 @@ builder.Services.AddOpenApiDocument(config =>
 var app = builder.Build();
 
 // ============================
-// DEBUGGING (IMPORTANT)
+// ERROR HANDLING (ONLY ONE)
 // ============================
-if (app.Environment.IsDevelopment())
-{
-    app.UseDeveloperExceptionPage();
-}
+app.UseMiddleware<ExceptionMiddleware>();
 
 // ============================
 // MIDDLEWARE
@@ -251,5 +253,6 @@ app.MapGet("/health", () => Results.Ok("Healthy"));
 // PORT (RENDER)
 // ============================
 var port = Environment.GetEnvironmentVariable("PORT") ?? "8080";
-Console.WriteLine($"Running in Production - Swagger available at http://0.0.0.0:{port}/");
+Console.WriteLine($"Running in Production on port {port}");
+
 app.Run($"http://0.0.0.0:{port}");

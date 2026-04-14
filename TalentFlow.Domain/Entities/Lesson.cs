@@ -14,7 +14,6 @@ namespace TalentFlow.Domain.Entities
         public int Order { get; private set; }
         public TimeSpan Duration { get; private set; }
         public DateTime CreatedAt { get; private set; }
-
         private Lesson() { } // EF Core
 
         public Lesson(Guid courseId, string title, string content, int order, TimeSpan duration)

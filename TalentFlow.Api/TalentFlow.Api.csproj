@@ -34,6 +34,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\TalentFlow.Application\TalentFlow.Application.csproj" />
+    <ProjectReference Include="..\TalentFlow.Domain\TalentFlow.Domain.csproj" />
     <ProjectReference Include="..\TalentFlow.Infrastructure\TalentFlow.Infrastructure.csproj" />
     <ProjectReference Include="..\TalentFlow.Persistence\TalentFlow.Persistence.csproj" />
   </ItemGroup>

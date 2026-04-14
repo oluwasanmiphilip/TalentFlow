@@ -42,6 +42,11 @@ namespace TalentFlow.Persistence
         public DbSet<Video> Videos { get; set; } = null!;
         public DbSet<RefreshToken> RefreshTokens { get; set; } = null!;
         public DbSet<OtpCode> OtpCodes { get; set; } = null!;
+        public DbSet<Submission> Submissions { get; set; } = null!;
+        public DbSet<LessonProgress> LessonProgresses { get; set; } = null!;
+        public DbSet<CourseProgress> CourseProgresses { get; set; } = null!;
+
+
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
