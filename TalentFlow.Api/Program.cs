@@ -32,6 +32,11 @@ builder.Host.UseSerilog((ctx, lc) => lc.ReadFrom.Configuration(ctx.Configuration
 builder.Services.AddControllers();
 
 // ============================
+// HTTP CLIENT (CRITICAL FIX)
+// ============================
+builder.Services.AddHttpClient();
+
+// ============================
 // DISPATCHER
 // ============================
 builder.Services.AddScoped<DomainEventDispatcher>();
@@ -40,6 +45,11 @@ builder.Services.AddScoped<DomainEventDispatcher>();
 // DATABASE CONFIG (Production only)
 // ============================
 var connectionString = builder.Configuration.GetSection("ConnectionStrings")["Production"];
+
+if (string.IsNullOrEmpty(connectionString))
+{
+    throw new Exception("Database connection string (Production) is missing");
+}
 
 builder.Services.AddDbContext<TalentFlowDbContext>((serviceProvider, options) =>
 {
@@ -79,8 +89,13 @@ builder.Services.AddScoped<OtpDeliveryHandler>();
 // Messaging / Email / SMS (Production only)
 // ============================
 var rabbitSection = builder.Configuration.GetSection("RabbitMQ:Production");
+
+if (!int.TryParse(rabbitSection["Port"], out var rabbitPort))
+{
+    throw new Exception("RabbitMQ Port is not configured correctly");
+}
+
 var rabbitHost = rabbitSection["Host"];
-var rabbitPort = int.Parse(rabbitSection["Port"]);
 var rabbitUser = rabbitSection["UserName"];
 var rabbitPass = rabbitSection["Password"];
 
@@ -115,8 +130,11 @@ builder.Services.AddMediatR(cfg =>
 // JWT AUTH (Production only)
 // ============================
 var jwtSecret = builder.Configuration["Jwt:Production:Secret"];
+
 if (string.IsNullOrEmpty(jwtSecret))
-    throw new Exception("JWT Secret not configured");
+{
+    throw new Exception("JWT Secret not configured - check appsettings or environment variables");
+}
 
 var key = Encoding.UTF8.GetBytes(jwtSecret);
 
@@ -127,7 +145,7 @@ builder.Services.AddAuthentication(options =>
 })
 .AddJwtBearer(options =>
 {
-    options.RequireHttpsMetadata = true;
+    options.RequireHttpsMetadata = false; // allow debugging
     options.SaveToken = true;
     options.TokenValidationParameters = new TokenValidationParameters
     {
@@ -200,13 +218,21 @@ builder.Services.AddOpenApiDocument(config =>
 var app = builder.Build();
 
 // ============================
+// DEBUGGING (IMPORTANT)
+// ============================
+if (app.Environment.IsDevelopment())
+{
+    app.UseDeveloperExceptionPage();
+}
+
+// ============================
 // MIDDLEWARE
 // ============================
 app.UseCors("AllowFrontend");
 app.UseOpenApi();
 app.UseSwaggerUi(c =>
 {
-    c.Path = ""; // serve Swagger UI at root "/"
+    c.Path = "";
 });
 
 app.UseHttpsRedirection();
