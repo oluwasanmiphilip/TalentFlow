@@ -1,4 +1,5 @@
-﻿using SendGrid;
+﻿using Azure;
+using SendGrid;
 using SendGrid.Helpers.Mail;
 using TalentFlow.Application.Common.Interfaces;
 using TalentFlow.Infrastructure.Resilience;
@@ -20,17 +21,18 @@ namespace TalentFlow.Infrastructure.Notifications
             var mail = new SendGridMessage
             {
                 From = new EmailAddress("noreply@talentflow.com", "TalentFlow"),
-                Subject = "Notification",
+                Subject = "Your OTP Code",
                 PlainTextContent = message.Message
             };
-            mail.AddTo(new EmailAddress(message.UserId + "@example.com"));
 
-            await PollyPolicies.RetryPolicy
-                .WrapAsync(PollyPolicies.CircuitBreakerPolicy)
-                .ExecuteAsync(async () =>
-                {
-                    await client.SendEmailAsync(mail);
-                });
+            // Use the new property
+            mail.AddTo(new EmailAddress(message.RecipientEmail));
+
+            var response = await client.SendEmailAsync(mail);
+            Console.WriteLine($"SendGrid response: {response.StatusCode}");
         }
+
+
+
     }
 }
