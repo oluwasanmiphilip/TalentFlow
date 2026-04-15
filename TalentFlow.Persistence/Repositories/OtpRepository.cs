@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
@@ -35,7 +36,7 @@ namespace TalentFlow.Persistence.Repositories
                 .ToListAsync(cancellationToken);
 
             foreach (var code in codes)
-                code.IsUsed = true; // or code.MarkUsed();
+                code.MarkUsed();
 
             await _context.SaveChangesAsync(cancellationToken);
         }
@@ -47,7 +48,7 @@ namespace TalentFlow.Persistence.Repositories
 
             if (otp != null)
             {
-                otp.IsUsed = true; // or otp.MarkUsed();
+                otp.MarkUsed();
                 await _context.SaveChangesAsync(cancellationToken);
             }
         }

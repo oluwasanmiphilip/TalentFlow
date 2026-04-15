@@ -27,7 +27,7 @@ public class AuthController : ControllerBase
         if (userDto == null)
             return BadRequest(ApiResponse<string>.Fail("Invalid registration data", 400));
 
-        var otpCode = await _mediator.Send(new GenerateOtpCommand
+        await _mediator.Send(new GenerateOtpCommand
         {
             UserId = userDto.Id,
             Channel = "email"
@@ -38,10 +38,10 @@ public class AuthController : ControllerBase
             id = userDto.Id,
             full_name = userDto.FullName,
             email = userDto.Email,
-            role = userDto.Role,
-            otp = otpCode
+            role = userDto.Role
         }, "User registered successfully. Please verify OTP.", 201));
     }
+
 
     [AllowAnonymous]
     [HttpPost("login")]
@@ -66,7 +66,7 @@ public class AuthController : ControllerBase
     {
         var userDto = await _mediator.Send(command);
         if (userDto == null)
-            return BadRequest(ApiResponse<string>.Fail("Invalid or expired OTP", 400));
+            return BadRequest(ApiResponse<string>.Fail($"Invalid or expired OTP for {command.Channel}", 400));
 
         var accessToken = _tokenService.GenerateToken(
             userDto.Id,
@@ -83,7 +83,31 @@ public class AuthController : ControllerBase
         return Ok(ApiResponse<object>.Success(new
         {
             accessToken,
-            refreshToken
-        }, "OTP verified successfully. Tokens issued."));
+            refreshToken,
+            channel = command.Channel
+        }, $"OTP verified successfully via {command.Channel}. Tokens issued."));
     }
+
+
+
+
+
+    [AllowAnonymous]
+    [HttpPost("resend-otp")]
+    public async Task<IActionResult> ResendOtp([FromBody] Guid userId)
+    {
+        var userDto = await _mediator.Send(new GetUserByIdCommand { UserId = userId });
+        if (userDto == null)
+            return NotFound(ApiResponse<string>.Fail("User not found", 404));
+
+        await _mediator.Send(new GenerateOtpCommand
+        {
+            UserId = userDto.Id,
+            Channel = "email"
+        });
+
+        return Ok(ApiResponse<string>.Success("A new OTP has been sent to your email."));
+    }
+
+
 }

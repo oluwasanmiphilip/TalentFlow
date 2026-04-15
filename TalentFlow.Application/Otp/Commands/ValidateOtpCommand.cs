@@ -8,5 +8,6 @@ namespace TalentFlow.Application.Otp.Commands
     {
         public Guid UserId { get; set; }
         public string Code { get; set; } = string.Empty;
+        public string Channel { get; set; } = "email"; // email or sms
     }
 }

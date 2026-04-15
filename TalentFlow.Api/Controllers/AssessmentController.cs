@@ -22,7 +22,7 @@ namespace TalentFlow.API.Controllers
             _mediator = mediator;
         }
 
-        // GET: api/assessment/{id}
+        // GET: api/assignment/{id}
         [HttpGet("{id}")]
         public async Task<ActionResult<AssessmentDto>> GetAssessment(Guid id)
         {

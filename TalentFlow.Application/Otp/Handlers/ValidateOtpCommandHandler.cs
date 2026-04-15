@@ -1,4 +1,5 @@
-﻿using System.Threading;
+﻿using System;
+using System.Threading;
 using System.Threading.Tasks;
 using MediatR;
 using TalentFlow.Application.Otp.Commands;
@@ -21,8 +22,12 @@ namespace TalentFlow.Application.Otp.Handlers
         public async Task<UserDto?> Handle(ValidateOtpCommand request, CancellationToken cancellationToken)
         {
             var otp = await _otpRepo.GetByUserIdAsync(request.UserId, cancellationToken);
-            if (otp == null || otp.Code != request.Code || otp.ExpiresAt < DateTime.UtcNow)
+            if (otp == null || otp.Code != request.Code || otp.ExpiresAt < DateTime.UtcNow || otp.IsUsed || otp.Channel != request.Channel)
                 return null;
+            // Mark OTP as used
+            await _otpRepo.MarkAsUsedAsync(request.UserId, cancellationToken);
+
+            return null;
 
             // ✅ Mark OTP as used once validated
             await _otpRepo.MarkAsUsedAsync(request.UserId, cancellationToken);
@@ -41,7 +46,5 @@ namespace TalentFlow.Application.Otp.Handlers
                 PhoneNumber = user.PhoneNumber
             };
         }
-
-
     }
 }

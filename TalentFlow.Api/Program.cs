@@ -93,6 +93,8 @@ builder.Services.AddScoped<TokenService>();
 builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
 builder.Services.AddScoped<ICourseProgressRepository, CourseProgressRepository>();
 builder.Services.AddScoped<ILeanersProgressRepository, LessonProgressRepository>();
+builder.Services.AddScoped<IOtpRepository, OtpRepository>();
+
 
 // ============================
 // Messaging / Email / SMS
@@ -135,6 +137,9 @@ builder.Services.AddMediatR(cfg =>
     cfg.RegisterServicesFromAssembly(typeof(RegisterUserCommandHandler).Assembly);
     cfg.RegisterServicesFromAssembly(typeof(UpdateVideoPositionCommand).Assembly);
 });
+builder.Services.AddMediatR(cfg =>
+    cfg.RegisterServicesFromAssembly(typeof(ValidateOtpCommandHandler).Assembly)
+);
 
 builder.Services.AddMediatR(cfg =>
     cfg.RegisterServicesFromAssembly(typeof(GenerateOtpCommandHandler).Assembly)
