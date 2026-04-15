@@ -136,6 +136,9 @@ builder.Services.AddMediatR(cfg =>
     cfg.RegisterServicesFromAssembly(typeof(UpdateVideoPositionCommand).Assembly);
 });
 
+builder.Services.AddMediatR(cfg =>
+    cfg.RegisterServicesFromAssembly(typeof(GenerateOtpCommandHandler).Assembly)
+);
 // ============================
 // JWT AUTH
 // ============================
