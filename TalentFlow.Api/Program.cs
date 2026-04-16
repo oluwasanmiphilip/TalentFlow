@@ -88,6 +88,8 @@ builder.Services.AddScoped<ICertificateRepository, CertificateRepository>();
 builder.Services.AddScoped<IOtpRepository, OtpRepository>();
 builder.Services.AddScoped<ISubmissionRepository, SubmissionRepository>();
 builder.Services.AddScoped<ISmsService, DummySmsService>();
+builder.Services.AddScoped<IEmailService, DummyEmailService>();
+
 
 // ============================
 // SERVICES
@@ -111,13 +113,13 @@ builder.Services.AddScoped<ILeanersProgressRepository, LessonProgressRepository>
 // ✅ Brevo Email ONLY
 // ✅ Email (Brevo or SendGrid)
 
-builder.Services.AddScoped<IEmailService>(sp =>
-{
-    var httpClient = sp.GetRequiredService<IHttpClientFactory>().CreateClient();
-    var apiKey = builder.Configuration["Brevo:ApiKey"];
+//builder.Services.AddScoped<IEmailService>(sp =>
+//{
+//    var httpClient = sp.GetRequiredService<IHttpClientFactory>().CreateClient();
+//    var apiKey = builder.Configuration["Brevo:ApiKey"];
 
-    return new BrevoEmailService(httpClient, apiKey);
-});
+//    return new BrevoEmailService(httpClient, apiKey);
+//});
 
 // ❌ OLD SMS REGISTRATION (COMMENTED OUT)
 /*
