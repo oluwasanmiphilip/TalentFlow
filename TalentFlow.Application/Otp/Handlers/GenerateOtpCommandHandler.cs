@@ -61,7 +61,7 @@ namespace TalentFlow.Application.Otp.Handlers
             // ✅ Always send via email (single-channel system)
             await _emailService.SendOtpAsync(user.Email, newOtp);
 
-            return newOtp; // ⚠️ keep only for development
+            return newOtp; // ⚠️ keep only for development,,....
         }
     }
 }
