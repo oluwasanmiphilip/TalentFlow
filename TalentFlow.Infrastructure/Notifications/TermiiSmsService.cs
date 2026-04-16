@@ -19,14 +19,15 @@ namespace TalentFlow.Infrastructure.Notifications
             _senderId = senderId;
         }
 
-        public async Task SendOtpAsync(string toPhoneNumber, string otpCode)
+        // Implements ISmsService.SendAsync
+        public async Task SendAsync(string phoneNumber, string message)
         {
             var payload = new
             {
                 api_key = _apiKey,
-                to = toPhoneNumber,
+                to = phoneNumber,
                 from = _senderId,
-                sms = $"Your TalentFlow OTP code is {otpCode}",
+                sms = message,
                 type = "plain",
                 channel = "generic"
             };
@@ -39,6 +40,13 @@ namespace TalentFlow.Infrastructure.Notifications
 
             var response = await _httpClient.PostAsync("https://api.ng.termii.com/api/sms/send", content);
             response.EnsureSuccessStatusCode();
+        }
+
+        // Convenience method for OTP
+        public async Task SendOtpAsync(string toPhoneNumber, string otpCode)
+        {
+            var message = $"Your TalentFlow OTP code is {otpCode}";
+            await SendAsync(toPhoneNumber, message);
         }
     }
 }

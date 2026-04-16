@@ -19,22 +19,29 @@ namespace TalentFlow.Infrastructure.Sms
             _senderId = senderId;
         }
 
-        public async Task SendOtpAsync(string toPhoneNumber, string otpCode)
+        // Generic SMS sender
+        public async Task SendAsync(string phoneNumber, string message)
         {
             var payload = new
             {
                 api_key = _apiKey,
-                to = toPhoneNumber,
+                to = phoneNumber,
                 from = _senderId,
-                sms = $"Your OTP code is {otpCode}. It expires in 5 minutes.",
+                sms = message,
                 type = "plain",
                 channel = "generic"
             };
 
             var content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
             var response = await _httpClient.PostAsync("https://api.ng.termii.com/api/sms/send", content);
-
             response.EnsureSuccessStatusCode();
+        }
+
+        // OTP-specific helper
+        public async Task SendOtpAsync(string toPhoneNumber, string otpCode)
+        {
+            var message = $"Your OTP code is {otpCode}. It expires in 5 minutes.";
+            await SendAsync(toPhoneNumber, message);
         }
     }
 }
