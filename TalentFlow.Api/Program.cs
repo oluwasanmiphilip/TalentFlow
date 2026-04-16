@@ -20,10 +20,14 @@ using TalentFlow.Infrastructure.Notifications;
 using TalentFlow.Infrastructure.Security;
 using TalentFlow.Infrastructure.Services;
 using TalentFlow.Infrastructure.Sms;
+
+
+// ❌ SMS (COMMENTED OUT)
+// using TalentFlow.Infrastructure.Sms;
+// using SmsTermiiService = TalentFlow.Infrastructure.Sms.TermiiSmsService;
+
 using TalentFlow.Persistence;
 using TalentFlow.Persistence.Repositories;
-using SmsTermiiService = TalentFlow.Infrastructure.Sms.TermiiSmsService;
-
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -83,6 +87,7 @@ builder.Services.AddScoped<IVideoRepository, VideoRepository>();
 builder.Services.AddScoped<ICertificateRepository, CertificateRepository>();
 builder.Services.AddScoped<IOtpRepository, OtpRepository>();
 builder.Services.AddScoped<ISubmissionRepository, SubmissionRepository>();
+builder.Services.AddScoped<ISmsService, DummySmsService>();
 
 // ============================
 // SERVICES
@@ -90,15 +95,32 @@ builder.Services.AddScoped<ISubmissionRepository, SubmissionRepository>();
 builder.Services.AddScoped<IEventStreamPublisher, EventStreamPublisher>();
 builder.Services.AddScoped<IPasswordHasher, PasswordHasher>();
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
-//builder.Services.AddScoped<INotificationService, NotificationService>();
+
+// ❌ Old Notification (COMMENTED)
+// builder.Services.AddScoped<INotificationService, NotificationService>();
+
 builder.Services.AddScoped<OtpDeliveryHandler>();
 builder.Services.AddScoped<TokenService>();
 builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
 builder.Services.AddScoped<ICourseProgressRepository, CourseProgressRepository>();
 builder.Services.AddScoped<ILeanersProgressRepository, LessonProgressRepository>();
-//builder.Services.AddScoped<ISmsService, SmsTermiiService>();
 
+// ❌ SMS SERVICE (COMMENTED OUT)
+// builder.Services.AddScoped<ISmsService, SmsTermiiService>();
 
+// ✅ Brevo Email ONLY
+// ✅ Email (Brevo or SendGrid)
+
+builder.Services.AddScoped<IEmailService>(sp =>
+{
+    var httpClient = sp.GetRequiredService<IHttpClientFactory>().CreateClient();
+    var apiKey = builder.Configuration["Brevo:ApiKey"];
+
+    return new BrevoEmailService(httpClient, apiKey);
+});
+
+// ❌ OLD SMS REGISTRATION (COMMENTED OUT)
+/*
 builder.Services.AddScoped<ISmsService>(sp =>
 {
     var httpClientFactory = sp.GetRequiredService<IHttpClientFactory>();
@@ -110,6 +132,7 @@ builder.Services.AddScoped<ISmsService>(sp =>
 
     return new TalentFlow.Infrastructure.Notifications.TermiiSmsService(client, apiKey, senderId);
 });
+*/
 
 // ============================
 // Messaging / Email / SMS
@@ -128,13 +151,15 @@ var rabbitPass = rabbitSection["Password"];
 builder.Services.AddSingleton<IMessageBus>(sp =>
     new RabbitMqMessageBus(rabbitHost, rabbitPort, rabbitUser, rabbitPass));
 
-builder.Services.AddTransient<IEmailService>(sp =>
-    new SendGridEmailService(builder.Configuration["SendGrid:Production:ApiKey"]));
+// ❌ DUPLICATE EMAIL SERVICE (COMMENTED OUT)
+// builder.Services.AddTransient<IEmailService>(sp =>
+//     new SendGridEmailService(builder.Configuration["SendGrid:Production:ApiKey"]));
 
-builder.Services.AddScoped<INotificationService>(sp =>
-    new SendGridNotificationService(builder.Configuration["SendGrid:ApiKey"]));
+// ✅ Correct Notification Service (DB logging)
+builder.Services.AddScoped<INotificationService, NotificationService>();
 
-
+// ❌ SECOND SMS REGISTRATION (COMMENTED OUT)
+/*
 builder.Services.AddScoped<ISmsService>(sp =>
 {
     var httpClientFactory = sp.GetRequiredService<IHttpClientFactory>();
@@ -146,9 +171,10 @@ builder.Services.AddScoped<ISmsService>(sp =>
 
     return new TalentFlow.Infrastructure.Notifications.TermiiSmsService(client, apiKey, senderId);
 });
+*/
 
 // ============================
-// MEDIATR (FIXED - SINGLE REGISTRATION)
+// MEDIATR
 // ============================
 builder.Services.AddMediatR(cfg =>
 {
@@ -160,6 +186,7 @@ builder.Services.AddMediatR(cfg =>
 builder.Services.AddMediatR(cfg =>
     cfg.RegisterServicesFromAssembly(typeof(GenerateOtpCommandHandler).Assembly)
 );
+
 // ============================
 // JWT AUTH
 // ============================
@@ -225,7 +252,7 @@ builder.Services.AddApiVersioning(options =>
 });
 
 // ============================
-// NSwag (Swagger)
+// SWAGGER
 // ============================
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddOpenApiDocument(config =>
@@ -251,36 +278,21 @@ builder.Services.AddOpenApiDocument(config =>
 // ============================
 var app = builder.Build();
 
-// ============================
-// ERROR HANDLING (ONLY ONE)
-// ============================
 app.UseMiddleware<ExceptionMiddleware>();
 
-// ============================
-// MIDDLEWARE
-// ============================
 app.UseCors("AllowFrontend");
 app.UseOpenApi();
-app.UseSwaggerUi(c =>
-{
-    c.Path = "";
-});
+app.UseSwaggerUi(c => { c.Path = ""; });
 
 app.UseHttpsRedirection();
 app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();
 
-// ============================
-// ROUTES
-// ============================
 app.MapControllers();
 app.MapGet("/", () => Results.Ok("TalentFlow API Running"));
 app.MapGet("/health", () => Results.Ok("Healthy"));
 
-// ============================
-// PORT (RENDER)
-// ============================
 var port = Environment.GetEnvironmentVariable("PORT") ?? "8080";
 Console.WriteLine($"Running in Production on port {port}");
 

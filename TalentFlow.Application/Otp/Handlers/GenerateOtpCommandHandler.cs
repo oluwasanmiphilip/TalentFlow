@@ -1,4 +1,6 @@
-﻿using MediatR;
+﻿// File Path: TalentFlow.Application/Otp/Handlers/GenerateOtpCommandHandler.cs
+
+using MediatR;
 using TalentFlow.Application.Otp.Commands;
 using TalentFlow.Application.Common.Interfaces;
 using TalentFlow.Domain.Entities;
@@ -9,16 +11,16 @@ namespace TalentFlow.Application.Otp.Handlers
     {
         private readonly IOtpRepository _otpRepo;
         private readonly IUserRepository _userRepo;
-        private readonly ISmsService _smsService;
+        private readonly IEmailService _emailService;
 
         public GenerateOtpCommandHandler(
             IOtpRepository otpRepo,
             IUserRepository userRepo,
-            ISmsService smsService)
+            IEmailService emailService)
         {
             _otpRepo = otpRepo;
             _userRepo = userRepo;
-            _smsService = smsService;
+            _emailService = emailService;
         }
 
         public async Task<string> Handle(GenerateOtpCommand request, CancellationToken cancellationToken)
@@ -27,6 +29,9 @@ namespace TalentFlow.Application.Otp.Handlers
             var user = await _userRepo.GetByIdAsync(request.UserId);
             if (user == null)
                 throw new Exception("User not found");
+
+            if (string.IsNullOrWhiteSpace(user.Email))
+                throw new Exception("User does not have a valid email");
 
             // 2. Expire old OTPs
             var existingOtps = await _otpRepo.GetActiveOtpsByUserIdAsync(request.UserId);
@@ -52,13 +57,11 @@ namespace TalentFlow.Application.Otp.Handlers
 
             await _otpRepo.AddAsync(otpCode);
 
-            // 4. SEND SMS via Termii ✅
-            await _smsService.SendAsync(
-                user.PhoneNumber,
-                $"Your TalentFlow OTP is {newOtp}"
-            );
+            // 4. SEND EMAIL via SendGrid ✅
+            // ✅ Always send via email (single-channel system)
+            await _emailService.SendOtpAsync(user.Email, newOtp);
 
-            return newOtp; // keep for DEV/debug only
+            return newOtp; // ⚠️ keep only for development
         }
     }
 }

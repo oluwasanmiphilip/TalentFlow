@@ -32,12 +32,10 @@ public class AuthController : ControllerBase
 
         if (userDto == null)
             return BadRequest(ApiResponse<string>.Fail("Invalid registration data", 400));
-
-        // Generate OTP (SMS)
+        // Generate OTP (Email)
         await _mediator.Send(new GenerateOtpCommand
         {
-            UserId = userDto.Id,
-            Channel = "sms"
+            UserId = userDto.Id
         });
 
         return Created("auth/register", ApiResponse<object>.Success(new
@@ -46,7 +44,7 @@ public class AuthController : ControllerBase
             full_name = userDto.FullName,
             email = userDto.Email,
             role = userDto.Role
-        }, "User registered successfully. OTP sent to your phone.", 201));
+        }, "User registered successfully. OTP sent to your email.", 201));
     }
 
     // ============================
@@ -61,14 +59,13 @@ public class AuthController : ControllerBase
         if (userDto == null)
             return Unauthorized(ApiResponse<string>.Fail("Invalid email or password", 401));
 
-        // Generate OTP (SMS)
+        // Generate OTP (Email)
         await _mediator.Send(new GenerateOtpCommand
         {
-            UserId = userDto.Id,
-            Channel = "sms"
+            UserId = userDto.Id
         });
 
-        return Ok(ApiResponse<string>.Success("Login successful. OTP sent to your phone."));
+        return Ok(ApiResponse<string>.Success("Login successful. OTP sent to your email."));
     }
 
     // ============================
@@ -81,7 +78,7 @@ public class AuthController : ControllerBase
         var userDto = await _mediator.Send(command);
 
         if (userDto == null)
-            return BadRequest(ApiResponse<string>.Fail($"Invalid or expired OTP for {command.Channel}", 400));
+            return BadRequest(ApiResponse<string>.Fail("Invalid or expired OTP", 400));
 
         var accessToken = _tokenService.GenerateToken(
             userDto.Id,
@@ -114,12 +111,12 @@ public class AuthController : ControllerBase
         if (userDto == null)
             return NotFound(ApiResponse<string>.Fail("User not found", 404));
 
+        // Generate OTP (Email)
         await _mediator.Send(new GenerateOtpCommand
         {
-            UserId = userDto.Id,
-            Channel = "sms"
+            UserId = userDto.Id
         });
 
-        return Ok(ApiResponse<string>.Success("New OTP sent to your phone."));
+        return Ok(ApiResponse<string>.Success("New OTP sent to your email."));
     }
 }
