@@ -1,38 +1,39 @@
-﻿using Azure;
-using SendGrid;
+﻿using SendGrid;
 using SendGrid.Helpers.Mail;
+using System;
+using System.Threading.Tasks;
 using TalentFlow.Application.Common.Interfaces;
-using TalentFlow.Infrastructure.Resilience;
 
-namespace TalentFlow.Infrastructure.Notifications
+public class SendGridNotificationService : INotificationService
 {
-    public class SendGridNotificationService 
+    private readonly string _apiKey;
+
+    public SendGridNotificationService(string apiKey)
     {
-        private readonly string _apiKey;
+        _apiKey = apiKey;
+    }
 
-        public SendGridNotificationService(string apiKey)
+    public async Task SendAsync(NotificationMessage message)
+    {
+        var client = new SendGridClient(_apiKey);
+
+        var mail = new SendGridMessage
         {
-            _apiKey = apiKey;
-        }
+            From = new EmailAddress("noreply@talentflow.com", "TalentFlow"),
+            Subject = "Your OTP Code",
+            PlainTextContent = message.Message
+        };
 
-        public async Task SendAsync(NotificationMessage message)
-        {
-            var client = new SendGridClient(_apiKey);
-            var mail = new SendGridMessage
-            {
-                From = new EmailAddress("noreply@talentflow.com", "TalentFlow"),
-                Subject = "Your OTP Code",
-                PlainTextContent = message.Message
-            };
+        mail.AddTo(new EmailAddress(message.RecipientEmail));
 
-            // Use the new property
-            mail.AddTo(new EmailAddress(message.RecipientEmail));
+        var response = await client.SendEmailAsync(mail);
 
-            var response = await client.SendEmailAsync(mail);
-            Console.WriteLine($"SendGrid response: {response.StatusCode}");
-        }
+        Console.WriteLine($"SendGrid response: {response.StatusCode}");
+    }
 
-
-
+    // If you don’t need this, you can leave it empty or throw NotImplementedException
+    public Task SendNotificationAsync(Guid notificationId, CancellationToken cancellationToken = default)
+    {
+        throw new NotImplementedException();
     }
 }

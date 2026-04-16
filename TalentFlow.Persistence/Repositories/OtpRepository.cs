@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -23,9 +24,28 @@ namespace TalentFlow.Persistence.Repositories
                 .FirstOrDefaultAsync(o => o.UserId == userId && !o.IsUsed, cancellationToken);
         }
 
+        public async Task<OtpCode?> GetByUserIdAndCodeAsync(Guid userId, string code)
+        {
+            return await _context.OtpCodes
+                .FirstOrDefaultAsync(o => o.UserId == userId && o.Code == code && !o.IsUsed);
+        }
+
+        public async Task<IEnumerable<OtpCode>> GetActiveOtpsByUserIdAsync(Guid userId)
+        {
+            return await _context.OtpCodes
+                .Where(o => o.UserId == userId && !o.IsUsed && o.ExpiresAt > DateTime.UtcNow)
+                .ToListAsync();
+        }
+
         public async Task AddAsync(OtpCode otp)
         {
             _context.OtpCodes.Add(otp);
+            await _context.SaveChangesAsync();
+        }
+
+        public async Task UpdateAsync(OtpCode otp)
+        {
+            _context.OtpCodes.Update(otp);
             await _context.SaveChangesAsync();
         }
 
@@ -36,7 +56,10 @@ namespace TalentFlow.Persistence.Repositories
                 .ToListAsync(cancellationToken);
 
             foreach (var code in codes)
-                code.MarkUsed();
+            {
+                code.IsUsed = true;
+                code.ExpiresAt = DateTime.UtcNow;
+            }
 
             await _context.SaveChangesAsync(cancellationToken);
         }
@@ -48,7 +71,7 @@ namespace TalentFlow.Persistence.Repositories
 
             if (otp != null)
             {
-                otp.MarkUsed();
+                otp.IsUsed = true;
                 await _context.SaveChangesAsync(cancellationToken);
             }
         }

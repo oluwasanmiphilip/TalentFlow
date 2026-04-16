@@ -16,11 +16,14 @@ using TalentFlow.Infrastructure.Auth;
 using TalentFlow.Infrastructure.Email;
 using TalentFlow.Infrastructure.Events;
 using TalentFlow.Infrastructure.Messaging;
+using TalentFlow.Infrastructure.Notifications;
 using TalentFlow.Infrastructure.Security;
 using TalentFlow.Infrastructure.Services;
 using TalentFlow.Infrastructure.Sms;
 using TalentFlow.Persistence;
 using TalentFlow.Persistence.Repositories;
+using SmsTermiiService = TalentFlow.Infrastructure.Sms.TermiiSmsService;
+
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -87,12 +90,14 @@ builder.Services.AddScoped<ISubmissionRepository, SubmissionRepository>();
 builder.Services.AddScoped<IEventStreamPublisher, EventStreamPublisher>();
 builder.Services.AddScoped<IPasswordHasher, PasswordHasher>();
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
-builder.Services.AddScoped<INotificationService, NotificationService>();
+//builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<OtpDeliveryHandler>();
 builder.Services.AddScoped<TokenService>();
 builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
 builder.Services.AddScoped<ICourseProgressRepository, CourseProgressRepository>();
 builder.Services.AddScoped<ILeanersProgressRepository, LessonProgressRepository>();
+//builder.Services.AddScoped<ISmsService, SmsTermiiService>();
+
 
 // ============================
 // Messaging / Email / SMS
@@ -114,6 +119,10 @@ builder.Services.AddSingleton<IMessageBus>(sp =>
 builder.Services.AddTransient<IEmailService>(sp =>
     new SendGridEmailService(builder.Configuration["SendGrid:Production:ApiKey"]));
 
+builder.Services.AddScoped<INotificationService>(sp =>
+    new SendGridNotificationService(builder.Configuration["SendGrid:ApiKey"]));
+
+
 builder.Services.AddScoped<ISmsService>(sp =>
 {
     var httpClientFactory = sp.GetRequiredService<IHttpClientFactory>();
@@ -123,7 +132,7 @@ builder.Services.AddScoped<ISmsService>(sp =>
     var apiKey = builder.Configuration["Termii:Production:ApiKey"];
     var senderId = builder.Configuration["Termii:Production:SenderId"];
 
-    return new TermiiSmsService(client, apiKey, senderId);
+    return new TalentFlow.Infrastructure.Notifications.TermiiSmsService(client, apiKey, senderId);
 });
 
 // ============================

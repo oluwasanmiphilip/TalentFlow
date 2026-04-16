@@ -29,6 +29,18 @@ public class OtpController : ControllerBase
         return Ok(ApiResponse<string>.Success(code, "OTP generated successfully"));
     }
 
+    [HttpPost("resend")]
+    public async Task<IActionResult> Resend([FromBody] Guid userId)
+    {
+        var code = await _mediator.Send(new GenerateOtpCommand
+        {
+            UserId = userId,
+            Channel = "email"
+        });
+
+        return Ok(ApiResponse<string>.Success(code, "OTP resent successfully"));
+    }
+
     [HttpPost("validate")]
     public async Task<IActionResult> Validate([FromBody] ValidateOtpCommand command)
     {
