@@ -24,23 +24,16 @@ using TalentFlow.Infrastructure.Security;
 using TalentFlow.Infrastructure.Services;
 using TalentFlow.Infrastructure.Sms;
 
-// ❌ SMS (COMMENTED OUT)
-// using TalentFlow.Infrastructure.Sms;
-// using SmsTermiiService = TalentFlow.Infrastructure.Sms.TermiiSmsService;
-
 using TalentFlow.Persistence;
 using TalentFlow.Persistence.Repositories;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // ============================
-// LOAD CONFIG (🔥 FIXED POSITION)
+// CONFIG LOAD (UNCHANGED)
 // ============================
-
-// Load .env for LOCAL only
 Env.Load();
 
-// Unified config (Render + local)
 builder.Configuration
     .AddJsonFile("appsettings.json", optional: false)
     .AddEnvironmentVariables();
@@ -103,7 +96,7 @@ builder.Services.AddScoped<IOtpRepository, OtpRepository>();
 builder.Services.AddScoped<ISubmissionRepository, SubmissionRepository>();
 
 // ============================
-// SMTP CONFIG
+// SMTP CONFIG (🔥 FIXED)
 // ============================
 builder.Services.Configure<SmtpSettings>(options =>
 {
@@ -149,7 +142,7 @@ builder.Services.AddScoped<ICourseProgressRepository, CourseProgressRepository>(
 builder.Services.AddScoped<ILeanersProgressRepository, LessonProgressRepository>();
 
 // ============================
-// Messaging / Email / SMS
+// MESSAGING
 // ============================
 var rabbitSection = builder.Configuration.GetSection("RabbitMQ:Production");
 
@@ -166,7 +159,7 @@ builder.Services.AddSingleton<IMessageBus>(sp =>
     new RabbitMqMessageBus(rabbitHost, rabbitPort, rabbitUser, rabbitPass));
 
 // ============================
-// Notification
+// NOTIFICATION
 // ============================
 builder.Services.AddScoped<INotificationService, NotificationService>();
 
@@ -256,18 +249,6 @@ builder.Services.AddOpenApiDocument(config =>
 {
     config.Title = "TalentFlow API";
     config.Version = "v1";
-    config.AddSecurity("Bearer", new NSwag.OpenApiSecurityScheme
-    {
-        Type = NSwag.OpenApiSecuritySchemeType.Http,
-        Scheme = "bearer",
-        BearerFormat = "JWT",
-        In = NSwag.OpenApiSecurityApiKeyLocation.Header,
-        Name = "Authorization",
-        Description = "Enter: Bearer {your JWT token}"
-    });
-    config.OperationProcessors.Add(
-        new NSwag.Generation.Processors.Security.AspNetCoreOperationSecurityScopeProcessor("Bearer")
-    );
 });
 
 // ============================
@@ -278,9 +259,6 @@ var app = builder.Build();
 app.UseMiddleware<ExceptionMiddleware>();
 
 app.UseCors("AllowFrontend");
-app.UseOpenApi();
-app.UseSwaggerUi(c => { c.Path = ""; });
-
 app.UseHttpsRedirection();
 app.UseRouting();
 app.UseAuthentication();
