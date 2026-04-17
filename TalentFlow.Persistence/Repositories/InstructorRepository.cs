@@ -42,5 +42,27 @@ namespace TalentFlow.Persistence.Repositories
         {
             return await _context.Instructors.ToListAsync(cancellationToken);
         }
+        public async Task<IEnumerable<Course>> GetCoursesByInstructorIdAsync(Guid instructorId)
+        {
+            return await _context.Courses
+                .Where(c => c.InstructorId == instructorId && !c.IsDeleted)
+                .ToListAsync();
+        }
+
+        public async Task<IEnumerable<Assessment>> GetPendingAssignmentsAsync(Guid instructorId)
+        {
+            return await _context.Assessments
+                .Where(a => a.InstructorId == instructorId && !a.IsDeleted && a.Status == "pending")
+                .ToListAsync();
+        }
+
+        public async Task<IEnumerable<Notification>> GetNotificationsByInstructorIdAsync(Guid instructorId)
+        {
+            return await _context.Notifications
+                .Where(n => n.UserId == instructorId && !n.IsDeleted)
+                .OrderByDescending(n => n.CreatedAt)
+                .ToListAsync();
+        }
+
     }
 }

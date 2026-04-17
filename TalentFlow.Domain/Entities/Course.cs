@@ -14,6 +14,9 @@ namespace TalentFlow.Domain.Entities
         public string Description { get; private set; } = string.Empty;
         public string Slug { get; private set; } = string.Empty;
         public string Status { get; private set; } = "draft"; // draft/published
+        public Guid InstructorId { get; set; }
+        public Instructor Instructor { get; set; } = null!;
+
 
         // Curriculum structure
         private readonly List<Lesson> _lessons = new();

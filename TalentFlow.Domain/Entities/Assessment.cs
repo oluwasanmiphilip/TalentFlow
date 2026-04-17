@@ -13,6 +13,9 @@ namespace TalentFlow.Domain.Entities
         public string Title { get; private set; } = string.Empty;
         public string Instructions { get; private set; } = string.Empty;
         public DateTime CreatedAt { get; private set; }
+        public Guid InstructorId { get; set; }
+        public Instructor Instructor { get; set; } = null!;
+        public string Status { get; set; } = "pending";
 
         // Audit fields
         public string? UpdatedBy { get; private set; }

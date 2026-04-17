@@ -88,7 +88,7 @@ namespace TalentFlow.Application.Common.Mappings
 
         public static NotificationDto ToDto(this Notification notification) => new NotificationDto
         {
-            Id = notification.Id,
+            Id = notification.Id.ToString(),
             UserId = notification.UserId,
             Message = notification.Message,
             CreatedAt = notification.CreatedAt,

@@ -15,12 +15,18 @@ namespace TalentFlow.Persistence.Configurations
 
             builder.HasIndex(u => u.LearnerId)
                    .IsUnique();
-
             builder.Property(u => u.Email)
-                   .IsRequired();
+       .IsRequired()
+       .HasMaxLength(255);
 
             builder.Property(u => u.FullName)
-                   .IsRequired();
+                   .IsRequired()
+                   .HasMaxLength(255);
+
+            builder.Property(u => u.Role)
+                   .IsRequired()
+                   .HasMaxLength(50);
+
         }
     }
 }

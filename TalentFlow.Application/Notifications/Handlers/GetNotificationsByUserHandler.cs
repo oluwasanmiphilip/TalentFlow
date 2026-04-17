@@ -26,7 +26,7 @@ namespace TalentFlow.Application.Notifications.Handlers
 
             return notifications.Select(n => new NotificationDto
             {
-                Id = n.Id,
+                Id = n.Id.ToString(),
                 UserId = n.UserId,
                 Message = n.Message,
                 CreatedAt = n.CreatedAt,

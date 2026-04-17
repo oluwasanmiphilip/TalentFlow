@@ -16,5 +16,11 @@ namespace TalentFlow.Application.Common.Interfaces
 
         // Optional: add queries you need, e.g. GetByCourseIdAsync
         Task<List<Instructor>> GetAllAsync(CancellationToken cancellationToken);
+
+
+        Task<IEnumerable<Course>> GetCoursesByInstructorIdAsync(Guid instructorId);
+        Task<IEnumerable<Assessment>> GetPendingAssignmentsAsync(Guid instructorId);
+        
+        Task<IEnumerable<Notification>> GetNotificationsByInstructorIdAsync(Guid instructorId);
     }
 }
