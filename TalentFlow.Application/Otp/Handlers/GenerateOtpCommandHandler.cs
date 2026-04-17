@@ -1,6 +1,4 @@
-﻿// File Path: TalentFlow.Application/Otp/Handlers/GenerateOtpCommandHandler.cs
-
-using MediatR;
+﻿using MediatR;
 using TalentFlow.Application.Otp.Commands;
 using TalentFlow.Application.Common.Interfaces;
 using TalentFlow.Domain.Entities;
@@ -12,15 +10,18 @@ namespace TalentFlow.Application.Otp.Handlers
         private readonly IOtpRepository _otpRepo;
         private readonly IUserRepository _userRepo;
         private readonly IEmailService _emailService;
+        private readonly ISmsService _smsService;
 
         public GenerateOtpCommandHandler(
             IOtpRepository otpRepo,
             IUserRepository userRepo,
-            IEmailService emailService)
+            IEmailService emailService,
+            ISmsService smsService)
         {
             _otpRepo = otpRepo;
             _userRepo = userRepo;
             _emailService = emailService;
+            _smsService = smsService;
         }
 
         public async Task<string> Handle(GenerateOtpCommand request, CancellationToken cancellationToken)
@@ -30,8 +31,8 @@ namespace TalentFlow.Application.Otp.Handlers
             if (user == null)
                 throw new Exception("User not found");
 
-            if (string.IsNullOrWhiteSpace(user.Email))
-                throw new Exception("User does not have a valid email");
+            if (string.IsNullOrWhiteSpace(user.Email) && string.IsNullOrWhiteSpace(user.PhoneNumber))
+                throw new Exception("User does not have valid contact info");
 
             // 2. Expire old OTPs
             var existingOtps = await _otpRepo.GetActiveOtpsByUserIdAsync(request.UserId);
@@ -57,11 +58,24 @@ namespace TalentFlow.Application.Otp.Handlers
 
             await _otpRepo.AddAsync(otpCode);
 
-            // 4. SEND EMAIL via SendGrid ✅
-            // ✅ Always send via email (single-channel system)
-            await _emailService.SendOtpAsync(user.Email, newOtp);
+            // 4. Send via chosen channel
+            if (request.Channel == "email")
+            {
+                await _emailService.SendOtpAsync(user.Email, newOtp);
+            }
+            else if (request.Channel == "sms")
+            {
+                if (string.IsNullOrWhiteSpace(user.PhoneNumber))
+                    throw new Exception("User does not have a valid phone number");
 
-            return newOtp; // ⚠️ keep only for development
+                await _smsService.SendOtpAsync(user.PhoneNumber, newOtp);
+            }
+            else
+            {
+                throw new Exception("Unsupported channel");
+            }
+
+            return newOtp; // ⚠️ keep only for development/logging
         }
     }
 }

@@ -1,6 +1,7 @@
 using Asp.Versioning;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Serilog;
 using System.Text;
@@ -87,8 +88,19 @@ builder.Services.AddScoped<IVideoRepository, VideoRepository>();
 builder.Services.AddScoped<ICertificateRepository, CertificateRepository>();
 builder.Services.AddScoped<IOtpRepository, OtpRepository>();
 builder.Services.AddScoped<ISubmissionRepository, SubmissionRepository>();
-builder.Services.AddScoped<ISmsService, DummySmsService>();
-builder.Services.AddScoped<IEmailService, DummyEmailService>();
+
+
+//Google Smpt Message
+builder.Services.Configure<SmtpSettings>(builder.Configuration.GetSection("SmtpSettings"));
+builder.Services.AddTransient<IEmailService>(sp =>
+{
+    var settings = sp.GetRequiredService<IOptions<SmtpSettings>>().Value;
+    return new SmtpEmailService(settings);
+});
+
+
+//builder.Services.AddScoped<ISmsService, DummySmsService>();
+//builder.Services.AddScoped<IEmailService, DummyEmailService>();
 
 
 // ============================

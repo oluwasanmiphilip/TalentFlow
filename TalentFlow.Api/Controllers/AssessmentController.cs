@@ -10,7 +10,7 @@ using TalentFlow.Application.Assessments.DTOs;
 
 namespace TalentFlow.API.Controllers
 {
-    //[ApiController]
+    [ApiController]
     [Route("api/[controller]")]
     [Authorize]
     public class AssessmentController : ControllerBase
