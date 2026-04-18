@@ -92,6 +92,20 @@ public class AuthController : ControllerBase
             userDto.Role
         );
 
+        // ✅ 🔥 FIX: SAVE TOKEN TO DB
+        var user = await _mediator.Send(new GetUserByIdCommand { UserId = userDto.Id });
+        if (user != null)
+        {
+            var domainUser = await HttpContext.RequestServices
+                .GetRequiredService<IUserRepository>()
+                .GetByIdAsync(userDto.Id);
+
+            domainUser.LastLoginToken = accessToken;
+            await HttpContext.RequestServices
+                .GetRequiredService<IUserRepository>()
+                .UpdateAsync(domainUser);
+        }
+
         return Ok(ApiResponse<object>.Success(new
         {
             accessToken,

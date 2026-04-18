@@ -19,7 +19,7 @@ namespace TalentFlow.API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    [Authorize(Policy = "RequireAdmin")]
+    [Authorize(Policy = "RequireAdmin") /*(Roles = "Admin, Instructor")*/]
     public class CourseController : ControllerBase
     {
         private readonly IMediator _mediator;
@@ -60,7 +60,7 @@ namespace TalentFlow.API.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteCourse(Guid id)
         {
-            var deletedBy = User.FindFirst("learner_id")?.Value ?? "system";
+            var deletedBy = User.FindFirst("userId")?.Value ?? "system";
             var result = await _mediator.Send(new DeleteCourseCommand(id, deletedBy));
             return result ? Ok(new { message = "Course deleted" }) : NotFound();
         }
@@ -100,7 +100,7 @@ namespace TalentFlow.API.Controllers
         [HttpPost("{courseId}/enroll/{userId}")]
         public async Task<IActionResult> EnrollLearner(Guid courseId, Guid userId)
         {
-            var enrolledBy = User.FindFirst("learner_id")?.Value ?? "system";
+            var enrolledBy = User.FindFirst("userId")?.Value ?? "system";
             var result = await _mediator.Send(new EnrollLearnerCommand(courseId, userId, enrolledBy));
             return result ? Ok(new { message = "Learner enrolled successfully" }) : NotFound();
         }
