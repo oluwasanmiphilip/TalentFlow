@@ -1,4 +1,5 @@
 ﻿using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using TalentFlow.Application.Dashboard.Admin.DTOs;
 using TalentFlow.Application.Dashboard.Admin.Queries;
@@ -7,6 +8,7 @@ namespace TalentFlow.API.Controllers
 {
     [ApiController]
     [Route("api/dashboard/admin")]
+    //[Authorize]
     public class AdminDashboardController : ControllerBase
     {
         private readonly IMediator _mediator;

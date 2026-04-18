@@ -10,7 +10,7 @@ namespace TalentFlow.API.Controllers
 
     [ApiController]
     [Route("api/[controller]")]
-    //[Authorize(Roles = "Admin,Instructor")]
+    [Authorize(Roles = "Admin,Instructor")]
 
     public class InstructorController : ControllerBase
     {

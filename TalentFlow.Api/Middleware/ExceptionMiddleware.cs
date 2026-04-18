@@ -9,9 +9,7 @@ namespace TalentFlow.API.Middleware
         private readonly RequestDelegate _next;
         private readonly ILogger<ExceptionMiddleware> _logger;
 
-        public ExceptionMiddleware(
-            RequestDelegate next,
-            ILogger<ExceptionMiddleware> logger)
+        public ExceptionMiddleware(RequestDelegate next, ILogger<ExceptionMiddleware> logger)
         {
             _next = next;
             _logger = logger;
@@ -25,21 +23,22 @@ namespace TalentFlow.API.Middleware
             }
             catch (Exception ex)
             {
-                // 🔥 THIS IS WHAT YOU WERE MISSING
-                _logger.LogError(ex, "Unhandled Exception occurred");
+                _logger.LogError(ex, "Unhandled exception occurred");
 
-                context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
                 context.Response.ContentType = "application/json";
+
+                // ✅ Return 400 for known validation/business errors
+                context.Response.StatusCode = ex is ArgumentException || ex is InvalidOperationException
+                    ? (int)HttpStatusCode.BadRequest
+                    : (int)HttpStatusCode.InternalServerError;
 
                 var response = new
                 {
-                    message = "An unexpected error occurred",
-                    detail = ex.Message,
-                    stackTrace = ex.StackTrace // 🔥 temporary for debugging
+                    message = "Request failed",
+                    detail = ex.Message
                 };
 
-                await context.Response.WriteAsync(
-                    JsonSerializer.Serialize(response));
+                await context.Response.WriteAsync(JsonSerializer.Serialize(response));
             }
         }
     }

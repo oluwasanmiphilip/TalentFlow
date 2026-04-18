@@ -11,7 +11,7 @@ namespace TalentFlow.API.Controllers
 
     [ApiController]
     [Route("api/[controller]")]
-    //[Authorize]
+    [Authorize]
     public class CourseProgressController : ControllerBase
     {
         private readonly IMediator _mediator;

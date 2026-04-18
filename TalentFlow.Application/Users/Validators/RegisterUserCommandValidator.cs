@@ -1,14 +1,21 @@
 ﻿using FluentValidation;
 using TalentFlow.Application.Users.Commands;
-using TalentFlow.Application.Common.Validation;
+using TalentFlow.Application.Common.Interfaces;
 
 namespace TalentFlow.Application.Users.Validators
 {
     public class RegisterUserCommandValidator : AbstractValidator<RegisterUserCommand>
     {
-        public RegisterUserCommandValidator()
+        public RegisterUserCommandValidator(IUserRepository userRepository)
         {
-            RuleFor(u => u.Email).ValidTalentFlowEmail();
+            RuleFor(u => u.Email)
+                .NotEmpty().WithMessage("Email is required")
+                .EmailAddress().WithMessage("Invalid email format")
+                .MustAsync(async (email, cancellation) =>
+                {
+                    var existingUser = await userRepository.GetByEmailAsync(email);
+                    return existingUser == null;
+                }).WithMessage("Email is already registered");
 
             RuleFor(u => u.FullName)
                 .NotEmpty().WithMessage("Full name is required")

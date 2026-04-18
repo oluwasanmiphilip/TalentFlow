@@ -12,7 +12,7 @@ using TalentFlow.Application.Users.DTOs;
 
 [ApiController]
 [Route("api/[controller]")]
-//[Authorize(Roles = "Admin,Learner")]
+[Authorize(Roles = "Admin,Learner")]
 public class UserController : ControllerBase
 {
     private readonly IMediator _mediator;

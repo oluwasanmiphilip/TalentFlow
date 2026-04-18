@@ -13,32 +13,46 @@ namespace TalentFlow.Infrastructure.Email
             _settings = settings;
         }
 
-        public async Task SendOtpAsync(string toEmail, string otpCode)
+        public async Task SendOtpAsync(string recipientEmail, string otpCode)
         {
-            try
+            int retryCount = 0;
+            const int maxRetries = 3;
+
+            while (true)
             {
-                using var client = new SmtpClient(_settings.Server, _settings.Port)
+                try
                 {
-                    Credentials = new NetworkCredential(_settings.Username, _settings.Password),
-                    EnableSsl = true
-                };
+                    using var client = new SmtpClient(_settings.Server, _settings.Port)
+                    {
+                        Credentials = new NetworkCredential(_settings.Username, _settings.Password),
+                        EnableSsl = true
+                    };
 
-                var mailMessage = new MailMessage
+                    var mail = new MailMessage
+                    {
+                        From = new MailAddress(_settings.SenderEmail, _settings.SenderName),
+                        Subject = "Your OTP Code",
+                        Body = $"Your OTP code is: {otpCode}",
+                        IsBodyHtml = false
+                    };
+
+                    mail.To.Add(recipientEmail);
+
+                    await client.SendMailAsync(mail);
+                    break; // ✅ success, exit loop
+                }
+                catch (Exception ex)
                 {
-                    From = new MailAddress(_settings.SenderEmail, _settings.SenderName),
-                    Subject = "Your OTP Code",
-                    Body = $"Your OTP is {otpCode}. Expires in 5 minutes.",
-                    IsBodyHtml = false
-                };
+                    retryCount++;
 
-                mailMessage.To.Add(toEmail);
+                    if (retryCount >= maxRetries)
+                    {
+                        throw new Exception($"Failed to send OTP after {maxRetries} attempts. Last error: {ex.Message}");
+                    }
 
-                await client.SendMailAsync(mailMessage);
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"[EMAIL ERROR]: {ex.Message}");
-                throw; // 🔥 critical: do NOT swallow errors
+                    // 🔄 wait before retry (exponential backoff)
+                    await Task.Delay(500 * retryCount);
+                }
             }
         }
     }

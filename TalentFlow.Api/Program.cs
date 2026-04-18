@@ -15,6 +15,7 @@ using TalentFlow.Application.LeanersProgress.Commands;
 using TalentFlow.Application.LeanersProgress.Repositories;
 using TalentFlow.Application.Otp.Handlers;
 using TalentFlow.Application.Users.Commands;
+using TalentFlow.Application.Users.Validators;
 using TalentFlow.Infrastructure.Auth;
 using TalentFlow.Infrastructure.Email;
 using TalentFlow.Infrastructure.Events;
@@ -23,7 +24,6 @@ using TalentFlow.Infrastructure.Notifications;
 using TalentFlow.Infrastructure.Security;
 using TalentFlow.Infrastructure.Services;
 using TalentFlow.Infrastructure.Sms;
-
 using TalentFlow.Persistence;
 using TalentFlow.Persistence.Repositories;
 
@@ -49,7 +49,6 @@ builder.Host.UseSerilog((ctx, lc) => lc.ReadFrom.Configuration(ctx.Configuration
 // CONTROLLERS
 // ============================
 builder.Services.AddControllers();
-
 // ============================
 // HTTP CLIENT
 // ============================
@@ -126,7 +125,14 @@ builder.Services.AddTransient<IEmailService>(sp =>
     return new SmtpEmailService(settings);
 });
 
-builder.Services.AddTransient<ISmsService, SmtpSmsService>();
+
+//SMPT SERVICE
+builder.Services.AddTransient<ISmsService>(sp =>
+{
+    var settings = sp.GetRequiredService<IOptions<SmtpSettings>>().Value;
+    return new SmtpSmsService(settings);
+});
+
 
 // ============================
 // SERVICES
@@ -259,6 +265,9 @@ var app = builder.Build();
 app.UseMiddleware<ExceptionMiddleware>();
 
 app.UseCors("AllowFrontend");
+
+app.UseOpenApi();
+app.UseSwaggerUi(settings => settings.Path = "/swagger");
 app.UseHttpsRedirection();
 app.UseRouting();
 app.UseAuthentication();

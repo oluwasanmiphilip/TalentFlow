@@ -15,28 +15,44 @@ namespace TalentFlow.API.Middleware
 
         public async Task InvokeAsync(HttpContext context)
         {
-            try
+            int retryCount = 0;
+            const int maxRetries = 3;
+
+            while (true)
             {
-                await _next(context);
-            }
-            catch (ValidationException ex)
-            {
-                context.Response.StatusCode = StatusCodes.Status400BadRequest;
-                context.Response.ContentType = "application/json";
-
-                var errors = ex.Errors.Select(e => new
+                try
                 {
-                    field = e.PropertyName,
-                    error = e.ErrorMessage
-                });
-
-                var response = new
+                    await _next(context);
+                    break; // ✅ success, exit loop
+                }
+                catch (ValidationException ex)
                 {
-                    message = "Validation failed",
-                    errors
-                };
+                    retryCount++;
 
-                await context.Response.WriteAsync(JsonSerializer.Serialize(response));
+                    if (retryCount >= maxRetries)
+                    {
+                        context.Response.StatusCode = StatusCodes.Status400BadRequest;
+                        context.Response.ContentType = "application/json";
+
+                        var errors = ex.Errors.Select(e => new
+                        {
+                            field = e.PropertyName,
+                            error = e.ErrorMessage
+                        });
+
+                        var response = new
+                        {
+                            message = "Validation failed after retries",
+                            errors
+                        };
+
+                        await context.Response.WriteAsync(JsonSerializer.Serialize(response));
+                        break;
+                    }
+
+                    // 🔄 wait briefly before retry
+                    await Task.Delay(200 * retryCount);
+                }
             }
         }
     }

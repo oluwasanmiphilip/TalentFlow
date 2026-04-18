@@ -1,4 +1,5 @@
-﻿using System.Threading;
+﻿using System.Net.Mail;
+using System.Threading;
 using System.Threading.Tasks;
 using MediatR;
 using TalentFlow.Application.Users.DTOs;
@@ -19,9 +20,31 @@ namespace TalentFlow.Application.Users.Commands
 
         public async Task<UserDto> Handle(RegisterUserCommand request, CancellationToken cancellationToken)
         {
+            // ✅ Strict email format check
+            try
+            {
+                var mailAddress = new MailAddress(request.Email);
+            }
+            catch
+            {
+                throw new Exception("Invalid email address format");
+            }
+
+            // ✅ Check if user already exists
+            var existingUser = await _userRepository.GetByEmailAsync(request.Email);
+            if (existingUser != null)
+            {
+                throw new Exception("User with this email already exists");
+            }
+
+            // ✅ Password rules (basic strict check)
+            if (string.IsNullOrWhiteSpace(request.Password) || request.Password.Length < 8)
+            {
+                throw new Exception("Password must be at least 8 characters long");
+            }
+
             var passwordHash = BCrypt.Net.BCrypt.HashPassword(request.Password);
 
-            // ✅ Pass phoneNumber as the last argument
             var user = new User(
                 request.Email,
                 request.FullName,
@@ -42,7 +65,7 @@ namespace TalentFlow.Application.Users.Commands
                 Role = user.Role,
                 Discipline = user.Discipline,
                 CohortYear = user.CohortYear,
-                PhoneNumber = user.PhoneNumber // ✅ include in DTO
+                PhoneNumber = user.PhoneNumber
             };
         }
     }
