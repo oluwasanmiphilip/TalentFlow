@@ -11,6 +11,7 @@ using TalentFlow.API.Middleware;
 using TalentFlow.Application.Common.Interfaces;
 using TalentFlow.Application.Common.Services;
 using TalentFlow.Application.CourseProgress.Repositories;
+using TalentFlow.Application.Instructors.Queries;
 using TalentFlow.Application.LeanersProgress.Commands;
 using TalentFlow.Application.LeanersProgress.Repositories;
 using TalentFlow.Application.Otp.Handlers;
@@ -182,6 +183,7 @@ builder.Services.AddMediatR(cfg =>
     cfg.RegisterServicesFromAssembly(typeof(RegisterUserCommand).Assembly);
 cfg.RegisterServicesFromAssembly(typeof(SaveLoginTokenCommand).Assembly);
 cfg.RegisterServicesFromAssembly(typeof(UpdateVideoPositionCommand).Assembly);
+    cfg.RegisterServicesFromAssembly(typeof(GetAllInstructorsQuery).Assembly);
 });
 
 builder.Services.AddMediatR(cfg =>

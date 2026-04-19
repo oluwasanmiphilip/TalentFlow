@@ -27,13 +27,15 @@ namespace TalentFlow.API.Controllers
 
         // GET: api/enrollment/{id}
         [HttpGet("{id}")]
-        public async Task<IActionResult> GetEnrollment(Guid id)
+        [HttpGet("{learnerId}/{courseId}")]
+        public async Task<IActionResult> GetEnrollment(Guid learnerId, Guid courseId)
         {
-            var enrollment = await _mediator.Send(new GetEnrollmentQuery(id));
+            var enrollment = await _mediator.Send(new GetEnrollmentQuery(learnerId, courseId));
             if (enrollment == null) return NotFound(ApiResponse<string>.Fail("Enrollment not found", 404));
 
             return Ok(ApiResponse<object>.Success(enrollment, "Enrollment retrieved successfully"));
         }
+
 
         // GET: api/enrollment/course/{courseId}
         [HttpGet("course/{courseId}")]
