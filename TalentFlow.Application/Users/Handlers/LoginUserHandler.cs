@@ -1,6 +1,7 @@
 ﻿using System.Threading;
 using System.Threading.Tasks;
 using MediatR;
+using TalentFlow.Application.Common.Interfaces;
 using TalentFlow.Application.Users.Commands;
 using TalentFlow.Application.Users.DTOs;
 using TalentFlow.Application.Common.Interfaces;
@@ -20,18 +21,21 @@ namespace TalentFlow.Application.Users.Handlers
 
         public async Task<UserDto> Handle(LoginUserCommand request, CancellationToken cancellationToken)
         {
-            var user = await _userRepository.GetByEmailAsync(request.Email, cancellationToken);
+            var email = request.Email.Trim().ToLower();
+
+            var user = await _userRepository.GetByEmailAsync(email, cancellationToken);
+
             if (user == null)
-                throw new UnauthorizedAccessException("Invalid credentials");
+                throw new UnauthorizedAccessException("Invalid email or password");
 
-            if (!_passwordHasher.Verify(request.Password, user.PasswordHash))
-                throw new UnauthorizedAccessException("Invalid credentials");
+            var isValidPassword = _passwordHasher.Verify(request.Password, user.PasswordHash);
 
-            // ✅ Single session enforcement
-            if (!string.IsNullOrEmpty(user.LastLoginToken))
-            {
-                throw new UnauthorizedAccessException("User already logged in elsewhere");
-            }
+            if (!isValidPassword)
+                throw new UnauthorizedAccessException("Invalid email or password");
+
+            // ✅ FIX: Clear previous session token (allow re-login)
+            user.LastLoginToken = null;
+            await _userRepository.UpdateAsync(user, cancellationToken);
 
             return new UserDto
             {

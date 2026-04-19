@@ -21,10 +21,7 @@ namespace TalentFlow.Persistence.Repositories
             return await _context.Users.FirstOrDefaultAsync(u => u.Id == id && !u.IsDeleted, ct);
         }
 
-        public async Task<User?> GetByEmailAsync(string email, CancellationToken ct = default)
-        {
-            return await _context.Users.FirstOrDefaultAsync(u => u.Email == email && !u.IsDeleted, ct);
-        }
+       
 
         public async Task<User?> GetByLearnerIdAsync(string learnerId, CancellationToken ct = default)
         {
@@ -38,6 +35,13 @@ namespace TalentFlow.Persistence.Repositories
             await _context.SaveChangesAsync(ct);
         }
 
+        public async Task<User?> GetByEmailAsync(string email, CancellationToken ct = default)
+        {
+            var normalizedEmail = email.Trim().ToLower();
+
+            return await _context.Users
+                .FirstOrDefaultAsync(u => u.Email == normalizedEmail && !u.IsDeleted, ct);
+        }
         public async Task UpdateAsync(User user, CancellationToken ct = default)
         {
             if (user == null) throw new ArgumentNullException(nameof(user));

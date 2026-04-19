@@ -13,11 +13,13 @@ namespace TalentFlow.Application.Users.Commands
     {
         private readonly IUserRepository _userRepository;
 
-        public RegisterUserCommandHandler(IUserRepository userRepository)
+        private readonly IPasswordHasher _passwordHasher;
+
+        public RegisterUserCommandHandler(IUserRepository userRepository, IPasswordHasher passwordHasher)
         {
             _userRepository = userRepository;
+            _passwordHasher = passwordHasher;
         }
-
         public async Task<UserDto> Handle(RegisterUserCommand request, CancellationToken cancellationToken)
         {
             // ✅ Email format check
@@ -43,7 +45,7 @@ namespace TalentFlow.Application.Users.Commands
                 throw new Exception("Password must be at least 8 characters long");
             }
 
-            var passwordHash = BCrypt.Net.BCrypt.HashPassword(request.Password);
+            var passwordHash = _passwordHasher.Hash(request.Password);
 
             var user = new User(
                 request.Email,

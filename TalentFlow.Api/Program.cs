@@ -150,6 +150,7 @@ builder.Services.AddScoped<ILeanersProgressRepository, LessonProgressRepository>
 builder.Services.AddScoped<IProgressRepository, ProgressRepository>();
 builder.Services.AddScoped<ILessonRepository, LessonRepository>();
 
+
 // ============================
 // MESSAGING
 // ============================
