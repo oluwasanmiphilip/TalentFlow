@@ -23,9 +23,9 @@ namespace TalentFlow.Persistence.Repositories
             await _context.Lessons.AddAsync(lesson, cancellationToken);
         }
 
-        public async Task<Lesson?> GetByIdAsync(Guid id, CancellationToken cancellationToken)
+        public async Task<Lesson?> GetByIdAsync(Guid lessonId, CancellationToken cancellationToken)
         {
-            return await _context.Lessons.FindAsync(new object[] { id }, cancellationToken);
+            return await _context.Lessons.FindAsync(new object[] { lessonId }, cancellationToken);
         }
 
         public async Task UpdateAsync(Lesson lesson, CancellationToken cancellationToken)
@@ -47,6 +47,7 @@ namespace TalentFlow.Persistence.Repositories
         {
             return await _context.Lessons
                 .Where(l => l.CourseId == courseId)
+                .OrderBy(l => l.Order)
                 .ToListAsync(cancellationToken);
         }
 
@@ -61,11 +62,26 @@ namespace TalentFlow.Persistence.Repositories
             var totalCount = await query.CountAsync(cancellationToken);
 
             var items = await query
+                .OrderBy(l => l.Order)
                 .Skip((pageNumber - 1) * pageSize)
                 .Take(pageSize)
                 .ToListAsync(cancellationToken);
 
             return (items, totalCount);
+        }
+
+        // ✅ Implementation for GetNextLessonAsync
+        public async Task<Lesson?> GetNextLessonAsync(Guid courseId, Guid currentLessonId, CancellationToken cancellationToken)
+        {
+            var currentLesson = await _context.Lessons
+                .FirstOrDefaultAsync(l => l.Id == currentLessonId && l.CourseId == courseId, cancellationToken);
+
+            if (currentLesson == null) return null;
+
+            return await _context.Lessons
+                .Where(l => l.CourseId == courseId && l.Order > currentLesson.Order)
+                .OrderBy(l => l.Order)
+                .FirstOrDefaultAsync(cancellationToken);
         }
     }
 }

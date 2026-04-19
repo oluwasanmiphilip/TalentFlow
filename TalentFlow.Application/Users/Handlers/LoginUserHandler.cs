@@ -27,6 +27,12 @@ namespace TalentFlow.Application.Users.Handlers
             if (!_passwordHasher.Verify(request.Password, user.PasswordHash))
                 throw new UnauthorizedAccessException("Invalid credentials");
 
+            // ✅ Single session enforcement
+            if (!string.IsNullOrEmpty(user.LastLoginToken))
+            {
+                throw new UnauthorizedAccessException("User already logged in elsewhere");
+            }
+
             return new UserDto
             {
                 Id = user.Id,

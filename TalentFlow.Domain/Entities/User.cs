@@ -13,10 +13,13 @@ namespace TalentFlow.Domain.Entities
         public string FullName { get; private set; } = string.Empty;
         public string PasswordHash { get; private set; } = string.Empty;
         public string Role { get; private set; } = "Learner";
+
+        // ✅ Single-session enforcement
         public string? LastLoginToken { get; set; }
 
         // Business identifiers
-        public string LearnerId { get; private set; } = $"TM-{DateTime.UtcNow.Year}-{Guid.NewGuid().ToString().Substring(0, 6)}";
+        public string LearnerId { get; private set; } =
+            $"TM-{DateTime.UtcNow.Year}-{Guid.NewGuid().ToString().Substring(0, 6)}";
 
         // Profile fields
         public string Discipline { get; private set; } = string.Empty;
@@ -42,7 +45,7 @@ namespace TalentFlow.Domain.Entities
         public User(string email, string fullName, string passwordHash, string role, string discipline, int cohortYear, string phoneNumber)
         {
             Id = Guid.NewGuid();
-            Email = email;
+            Email = email.ToLowerInvariant().Trim();
             FullName = fullName;
             PasswordHash = passwordHash;
             Role = role;
@@ -56,10 +59,11 @@ namespace TalentFlow.Domain.Entities
         public void UpdateProfile(string fullName, string email, string phoneNumber, string updatedBy)
         {
             FullName = fullName;
-            Email = email;
+            Email = email.ToLowerInvariant().Trim();
             PhoneNumber = phoneNumber;
             UpdatedAt = DateTime.UtcNow;
             UpdatedBy = updatedBy;
+
             AddDomainEvent(new UserProfileUpdatedEvent(this));
         }
 

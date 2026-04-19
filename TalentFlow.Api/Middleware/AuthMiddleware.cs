@@ -12,7 +12,10 @@ public class AuthMiddleware
 
     public async Task InvokeAsync(HttpContext context, IUserRepository userRepository)
     {
-        var token = context.Request.Headers["Authorization"].FirstOrDefault()?.Replace("Bearer ", "");
+        var token = context.Request.Headers["Authorization"]
+            .FirstOrDefault()
+            ?.Replace("Bearer ", "");
+
         if (!string.IsNullOrEmpty(token))
         {
             var handler = new JwtSecurityTokenHandler();
@@ -20,6 +23,8 @@ public class AuthMiddleware
             var userId = Guid.Parse(jwtToken.Claims.First(c => c.Type == "userId").Value);
 
             var user = await userRepository.GetByIdAsync(userId);
+
+            // ✅ Enforce single-session login
             if (user?.LastLoginToken != token)
             {
                 context.Response.StatusCode = StatusCodes.Status401Unauthorized;

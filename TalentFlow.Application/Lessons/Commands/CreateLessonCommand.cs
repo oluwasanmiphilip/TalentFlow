@@ -1,5 +1,5 @@
-﻿using MediatR;
-using System;
+﻿using System;
+using MediatR;
 using TalentFlow.Application.Lessons.DTOs;
 
 namespace TalentFlow.Application.Lessons.Commands
@@ -9,7 +9,8 @@ namespace TalentFlow.Application.Lessons.Commands
         public Guid CourseId { get; set; }
         public string Title { get; set; } = string.Empty;
         public string Content { get; set; } = string.Empty;
+        public string ContentUrl { get; set; } = string.Empty; // ✅ Added
         public int Order { get; set; }
-        public TimeSpan Duration { get; set; } // ✅ ADD THIS
+        public TimeSpan Duration { get; set; }
     }
 }

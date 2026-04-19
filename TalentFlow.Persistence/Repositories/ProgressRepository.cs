@@ -1,20 +1,49 @@
-﻿using System;
+﻿using Microsoft.EntityFrameworkCore;
+using System;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.EntityFrameworkCore;
-using TalentFlow.Domain.Entities;
 using TalentFlow.Application.Common.Interfaces;
+using TalentFlow.Domain.Entities;
 
 namespace TalentFlow.Persistence.Repositories
 {
-    public class ProgressRepository : BaseRepository<Progress>, IProgressRepository
+    public class ProgressRepository : IProgressRepository
     {
-        public ProgressRepository(TalentFlowDbContext context) : base(context) { }
+        private readonly TalentFlowDbContext _context;
 
-        public async Task<Progress?> GetByLearnerAndCourseAsync(Guid learnerId, Guid courseId, CancellationToken cancellationToken)
+        public ProgressRepository(TalentFlowDbContext context)
         {
-            return await _dbSet
-                .FirstOrDefaultAsync(p => p.LearnerId == learnerId && p.CourseId == courseId, cancellationToken);
+            _context = context;
+        }
+
+        public async Task<LessonProgress?> GetByLearnerAndLessonAsync(Guid learnerId, Guid courseId, Guid lessonId, CancellationToken cancellationToken)
+        {
+            return await _context.LessonProgresses
+                .Include(lp => lp.Lesson)
+                .FirstOrDefaultAsync(lp =>
+                    lp.UserId == learnerId &&
+                    lp.LessonId == lessonId &&
+                    lp.Lesson.CourseId == courseId,
+                    cancellationToken);
+        }
+
+        public async Task AddAsync(LessonProgress progress, CancellationToken cancellationToken)
+        {
+            await _context.LessonProgresses.AddAsync(progress, cancellationToken);
+        }
+
+        public async Task UpdateAsync(LessonProgress progress, CancellationToken cancellationToken)
+        {
+            _context.LessonProgresses.Update(progress);
+        }
+
+        public async Task DeleteAsync(Guid id, CancellationToken cancellationToken)
+        {
+            var progress = await _context.LessonProgresses.FindAsync(new object[] { id }, cancellationToken);
+            if (progress != null)
+            {
+                _context.LessonProgresses.Remove(progress);
+            }
         }
     }
 }
