@@ -42,6 +42,8 @@ namespace TalentFlow.Persistence
         public DbSet<RefreshToken> RefreshTokens { get; set; } = null!;
         public DbSet<OtpCode> OtpCodes { get; set; } = null!;
         public DbSet<Submission> Submissions { get; set; } = null!;
+        public DbSet<LearningTask> LearningTasks { get; set; } = null!;
+
         public DbSet<LessonProgress> LessonProgresses { get; set; } = null!;
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)

@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using TalentFlow.Application.Common.Models;
+using TalentFlow.Application.CourseProgress.Commands;
 using TalentFlow.Application.Courses.DTOs; // ✅ Correct import
 using TalentFlow.Application.Enrollments.Commands;
 using TalentFlow.Application.Enrollments.DTOs;
@@ -81,6 +82,25 @@ namespace TalentFlow.API.Controllers
 
             return Ok(enrollment);
         }
+        // PUT: api/enrollment/course/{courseId}/complete
+        [HttpPut("course/{courseId}/complete")]
+        public async Task<IActionResult> CompleteCourse(Guid courseId)
+        {
+            var learnerIdClaim = User.FindFirst("learner_id")?.Value;
+            if (string.IsNullOrEmpty(learnerIdClaim))
+                return Unauthorized(ApiResponse<string>.Fail("Learner ID not found in token", 401));
+
+            var learnerId = Guid.Parse(learnerIdClaim);
+
+            var command = new CompleteCourseCommand(learnerId, courseId);
+            var result = await _mediator.Send(command);
+
+            if (result == null)
+                return BadRequest(ApiResponse<string>.Fail("Course cannot be marked complete until all lessons are finished", 400));
+
+            return Ok(ApiResponse<object>.Success(result, "Course marked as completed"));
+        }
+
 
     }
 }

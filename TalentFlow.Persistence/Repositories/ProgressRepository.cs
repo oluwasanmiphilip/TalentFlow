@@ -1,5 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using TalentFlow.Application.Common.Interfaces;
@@ -32,9 +34,18 @@ namespace TalentFlow.Persistence.Repositories
             await _context.LessonProgresses.AddAsync(progress, cancellationToken);
         }
 
+        public async Task<List<LessonProgress>> GetByLearnerAndCourseAsync(Guid learnerId, Guid courseId, CancellationToken cancellationToken)
+        {
+            return await _context.LessonProgresses
+                .Include(lp => lp.Lesson)
+                .Where(lp => lp.UserId == learnerId && lp.Lesson.CourseId == courseId)
+                .ToListAsync(cancellationToken);
+        }
+
         public async Task UpdateAsync(LessonProgress progress, CancellationToken cancellationToken)
         {
             _context.LessonProgresses.Update(progress);
+            await Task.CompletedTask; // EF Core tracks changes, so no async work here
         }
 
         public async Task DeleteAsync(Guid id, CancellationToken cancellationToken)

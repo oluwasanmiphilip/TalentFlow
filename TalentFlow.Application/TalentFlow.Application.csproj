@@ -21,6 +21,7 @@
     <Folder Include="CourseProgress\Repositories\" />
     <Folder Include="EventHandlers\" />
     <Folder Include="Grades\" />
+    <Folder Include="LearningTask\Repositories\" />
     <Folder Include="LessonProgress\Commands\" />
     <Folder Include="LessonProgress\DTOs\" />
   </ItemGroup>

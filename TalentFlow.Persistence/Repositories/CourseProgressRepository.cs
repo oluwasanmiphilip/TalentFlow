@@ -1,4 +1,8 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using System;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using TalentFlow.Application.CourseProgress.DTOs;
 using TalentFlow.Application.CourseProgress.Repositories;
 using TalentFlow.Domain.Entities;
@@ -20,10 +24,7 @@ namespace TalentFlow.Persistence.Repositories
             if (lesson == null) return 0;
 
             var courseId = lesson.CourseId;
-
-            var totalLessons = await _db.Lessons
-                .CountAsync(l => l.CourseId == courseId, ct);
-
+            var totalLessons = await _db.Lessons.CountAsync(l => l.CourseId == courseId, ct);
             if (totalLessons == 0) return 0;
 
             var completedLessons = await _db.LessonProgresses
@@ -40,7 +41,6 @@ namespace TalentFlow.Persistence.Repositories
             if (lesson == null) return;
 
             var courseId = lesson.CourseId;
-
             var courseProgress = await _db.CourseProgresses
                 .FirstOrDefaultAsync(cp => cp.CourseId == courseId && cp.UserId == userId, ct);
 
@@ -77,6 +77,7 @@ namespace TalentFlow.Persistence.Repositories
                 .Select(l => l.Id)
                 .FirstOrDefaultAsync(ct);
         }
+
         public async Task<CourseProgressDto?> GetProgressAsync(Guid userId, Guid courseId, CancellationToken ct)
         {
             var progress = await _db.CourseProgresses
@@ -93,5 +94,24 @@ namespace TalentFlow.Persistence.Repositories
                 CompletedAt = progress.CompletedAt
             };
         }
+
+        // ✅ Added missing method
+        public async Task<CourseProgressDto?> GetByLearnerAndCourseAsync(Guid learnerId, Guid courseId, CancellationToken ct)
+        {
+            var progress = await _db.CourseProgresses
+                .FirstOrDefaultAsync(cp => cp.UserId == learnerId && cp.CourseId == courseId, ct);
+
+            if (progress == null) return null;
+
+            return new CourseProgressDto
+            {
+                CourseId = progress.CourseId,
+                UserId = progress.UserId,
+                Percentage = progress.Percentage,
+                CertificateUnlocked = progress.CertificateUnlocked,
+                CompletedAt = progress.CompletedAt
+            };
+        }
+
     }
 }
