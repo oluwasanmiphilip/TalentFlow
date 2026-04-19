@@ -32,7 +32,7 @@ public class AuthController : ControllerBase
 
         if (userDto == null)
             return BadRequest(ApiResponse<string>.Fail("Invalid registration data", 400));
-        // Generate OTP (Email)
+
         await _mediator.Send(new GenerateOtpCommand
         {
             UserId = userDto.Id
@@ -59,13 +59,16 @@ public class AuthController : ControllerBase
         if (userDto == null)
             return Unauthorized(ApiResponse<string>.Fail("Invalid email or password", 401));
 
-        // Generate OTP (Email)
         await _mediator.Send(new GenerateOtpCommand
         {
             UserId = userDto.Id
         });
 
-        return Ok(ApiResponse<string>.Success("Login successful. OTP sent to your email."));
+        return Ok(ApiResponse<object>.Success(new
+        {
+            userId = userDto.Id,
+            message = "OTP sent to your email. Please verify to complete login."
+        }));
     }
 
     // ============================
@@ -92,19 +95,12 @@ public class AuthController : ControllerBase
             userDto.Role
         );
 
-        // ✅ 🔥 FIX: SAVE TOKEN TO DB
-        var user = await _mediator.Send(new GetUserByIdCommand { UserId = userDto.Id });
-        if (user != null)
+        // ✅ FIXED: SAVE TOKEN USING MEDIATOR (CLEAN CQRS)
+        await _mediator.Send(new SaveLoginTokenCommand
         {
-            var domainUser = await HttpContext.RequestServices
-                .GetRequiredService<IUserRepository>()
-                .GetByIdAsync(userDto.Id);
-
-            domainUser.LastLoginToken = accessToken;
-            await HttpContext.RequestServices
-                .GetRequiredService<IUserRepository>()
-                .UpdateAsync(domainUser);
-        }
+            UserId = userDto.Id,
+            Token = accessToken
+        });
 
         return Ok(ApiResponse<object>.Success(new
         {
@@ -125,7 +121,6 @@ public class AuthController : ControllerBase
         if (userDto == null)
             return NotFound(ApiResponse<string>.Fail("User not found", 404));
 
-        // Generate OTP (Email)
         await _mediator.Send(new GenerateOtpCommand
         {
             UserId = userDto.Id

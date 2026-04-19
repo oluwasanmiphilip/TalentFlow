@@ -179,8 +179,9 @@ builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddMediatR(cfg =>
 {
     cfg.RegisterServicesFromAssembly(typeof(Program).Assembly);
-    cfg.RegisterServicesFromAssembly(typeof(RegisterUserCommandHandler).Assembly);
-    cfg.RegisterServicesFromAssembly(typeof(UpdateVideoPositionCommand).Assembly);
+    cfg.RegisterServicesFromAssembly(typeof(RegisterUserCommand).Assembly);
+cfg.RegisterServicesFromAssembly(typeof(SaveLoginTokenCommand).Assembly);
+cfg.RegisterServicesFromAssembly(typeof(UpdateVideoPositionCommand).Assembly);
 });
 
 builder.Services.AddMediatR(cfg =>
