@@ -152,7 +152,7 @@ builder.Services.AddScoped<ILeanersProgressRepository, LessonProgressRepository>
 builder.Services.AddScoped<IProgressRepository, ProgressRepository>();
 builder.Services.AddScoped<ILessonRepository, LessonRepository>();
 builder.Services.AddScoped<ILearningWorkRepository, LearningWorkRepository>();
-
+builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
 
 // ============================
