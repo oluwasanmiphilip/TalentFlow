@@ -1,9 +1,9 @@
-﻿using System;
-using MediatR;
+﻿using MediatR;
+using System;
 using TalentFlow.Application.Enrollments.DTOs;
 
 namespace TalentFlow.Application.Enrollments.Queries
 {
-    // Query to fetch a single enrollment by Id
-    public record GetEnrollmentQuery(Guid Id) : IRequest<EnrollmentDto>;
+    public record GetEnrollmentQuery(Guid UserId, Guid CourseId)
+        : IRequest<EnrollmentDto>;
 }

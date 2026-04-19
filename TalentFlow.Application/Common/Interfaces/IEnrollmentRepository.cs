@@ -12,5 +12,6 @@ namespace TalentFlow.Application.Common.Interfaces
         Task<List<Enrollment>> GetByCourseIdAsync(Guid courseId, CancellationToken ct = default);
         Task AddAsync(Enrollment enrollment, CancellationToken ct = default);
         Task UpdateAsync(Enrollment enrollment, CancellationToken ct = default);
+        Task<Enrollment?> GetByUserAndCourseAsync(Guid userId, Guid courseId, CancellationToken ct);
     }
 }

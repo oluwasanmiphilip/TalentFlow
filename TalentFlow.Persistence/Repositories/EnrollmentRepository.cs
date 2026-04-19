@@ -43,6 +43,11 @@ namespace TalentFlow.Persistence.Repositories
             return Task.CompletedTask;
         }
 
+        public async Task<Enrollment?> GetByUserAndCourseAsync(Guid userId, Guid courseId, CancellationToken ct)
+        {
+            return await _context.Enrollments
+                .FirstOrDefaultAsync(x => x.UserId == userId && x.CourseId == courseId, ct);
+        }
         public Task SoftDeleteAsync(Enrollment enrollment, CancellationToken ct = default)
         {
             enrollment.SoftDelete(enrollment.DeletedBy ?? "system");
