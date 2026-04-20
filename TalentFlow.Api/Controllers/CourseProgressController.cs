@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using TalentFlow.Application.CourseProgress.Queries;
 using TalentFlow.Application.CourseProgress.DTOs;
-using TalentFlow.Application.CourseProgress.Repositories;
+
 
 
 namespace TalentFlow.API.Controllers
