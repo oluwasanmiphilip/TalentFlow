@@ -1,4 +1,4 @@
-﻿using System.IdentityModel.Tokens.Jwt;
+using System.IdentityModel.Tokens.Jwt;
 using TalentFlow.Application.Common.Interfaces;
 
 public class AuthMiddleware
@@ -21,12 +21,12 @@ public class AuthMiddleware
             var handler = new JwtSecurityTokenHandler();
             var jwtToken = handler.ReadJwtToken(token);
             var userId = Guid.Parse(jwtToken.Claims.First(c => c.Type == "userId").Value);
-
             var user = await userRepository.GetByIdAsync(userId);
 
-            // ✅ Enforce single-session login
             if (user?.LastLoginToken != token)
             {
+                context.Response.Headers.Append("Access-Control-Allow-Origin", context.Request.Headers["Origin"].ToString());
+                context.Response.Headers.Append("Access-Control-Allow-Headers", "Authorization, Content-Type");
                 context.Response.StatusCode = StatusCodes.Status401Unauthorized;
                 await context.Response.WriteAsync("Session expired or logged in elsewhere");
                 return;
