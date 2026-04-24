@@ -297,9 +297,9 @@ builder.Services.AddOpenApiDocument(config =>
 var app = builder.Build();
 
 app.UseMiddleware<ExceptionMiddleware>();
-app.UseMiddleware<AuthMiddleware>();
 app.UseRouting();
 app.UseCors("AllowFrontend");
+app.UseMiddleware<AuthMiddleware>();
 
 app.UseOpenApi();
 app.UseSwaggerUi(settings => settings.Path = "/swagger");
