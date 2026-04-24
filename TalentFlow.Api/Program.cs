@@ -298,13 +298,12 @@ var app = builder.Build();
 
 app.UseMiddleware<ExceptionMiddleware>();
 app.UseMiddleware<AuthMiddleware>();
-
+app.UseRouting();
 app.UseCors("AllowFrontend");
 
 app.UseOpenApi();
 app.UseSwaggerUi(settings => settings.Path = "/swagger");
 app.UseHttpsRedirection();
-app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();
 
