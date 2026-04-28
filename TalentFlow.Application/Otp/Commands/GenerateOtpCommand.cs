@@ -7,7 +7,7 @@ namespace TalentFlow.Application.Otp.Commands
     {
         public Guid UserId { get; set; }
 
-        // ✅ New property to choose delivery channel
+        // ✅ New property to choose between delivery channel
         // Accepts "email" or "sms"
         public string Channel { get; set; } = "email";
     }
