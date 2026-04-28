@@ -59,10 +59,21 @@ public class AuthController : ControllerBase
         if (userDto == null)
             return Unauthorized(ApiResponse<string>.Fail("Invalid email or password", 401));
 
-        await _mediator.Send(new GenerateOtpCommand
+        var accessToken = _tokenService.GenerateToken(userDto.Id, userDto.Email, userDto.Role);
+        var refreshToken = _tokenService.GenerateRefreshToken(userDto.Id, userDto.Email, userDto.Role);
+
+        await _mediator.Send(new SaveLoginTokenCommand
         {
-            UserId = userDto.Id
+            UserId = userDto.Id,
+            Token = accessToken
         });
+
+        return Ok(ApiResponse<object>.Success(new
+        {
+            accessToken,
+            refreshToken
+        }, "Login successful."));
+
 
         return Ok(ApiResponse<object>.Success(new
         {
