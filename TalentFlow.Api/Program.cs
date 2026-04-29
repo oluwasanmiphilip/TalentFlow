@@ -65,7 +65,7 @@ builder.Services.AddHttpClient();
 builder.Services.AddScoped<DomainEventDispatcher>();
 
 // ============================
-// DATABASE CONFIG (SAFE)
+// DATABASE CONFIG
 // ============================
 var connectionString =
     builder.Configuration.GetConnectionString("Production")
@@ -117,7 +117,7 @@ builder.Services.Configure<FormOptions>(options =>
 });
 
 // ============================
-// SMTP CONFIG (SAFE)
+// SMTP CONFIG
 // ============================
 builder.Services.Configure<SmtpSettings>(options =>
 {
@@ -159,7 +159,7 @@ builder.Services.AddScoped<ILessonRepository, LessonRepository>();
 builder.Services.AddScoped<ILearningWorkRepository, LearningWorkRepository>();
 
 // ============================
-// MESSAGING (SAFE)
+// MESSAGING
 // ============================
 var rabbitSection = builder.Configuration.GetSection("RabbitMQ:Production");
 
@@ -186,7 +186,7 @@ builder.Services.AddMediatR(cfg =>
 });
 
 // ============================
-// JWT AUTH (SAFE)
+// JWT AUTH
 // ============================
 var jwtSecret = builder.Configuration["Jwt:Production:Secret"] ?? "default_dev_secret_key";
 
@@ -235,6 +235,16 @@ builder.Services.AddCors(options =>
 });
 
 // ============================
+// SWAGGER (✅ FIXED)
+// ============================
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddOpenApiDocument(config =>
+{
+    config.Title = "TalentFlow API";
+    config.Version = "v1";
+});
+
+// ============================
 // BUILD APP
 // ============================
 var app = builder.Build();
@@ -244,12 +254,15 @@ app.UseMiddleware<AuthMiddleware>();
 
 app.UseCors("AllowFrontend");
 
+// ✅ FIXED Swagger config
 app.UseOpenApi();
-app.UseSwaggerUi(settings => settings.Path = "/swagger");
 
-// ❌ Removed HTTPS redirection (Render handles it)
+app.UseSwaggerUi(settings =>
+{
+    settings.Path = "/swagger";
+    settings.DocumentPath = "/swagger/v1/swagger.json";
+});
 
-// Routing
 app.UseRouting();
 
 app.UseAuthentication();
@@ -259,11 +272,9 @@ app.UseStaticFiles();
 
 app.MapControllers();
 
-// Health endpoints
 app.MapGet("/", () => Results.Ok("TalentFlow API Running"));
 app.MapGet("/health", () => Results.Ok("Healthy"));
 
-// ✅ Correct port for Render
 var port = Environment.GetEnvironmentVariable("PORT") ?? "10000";
 Console.WriteLine($"Running in Production on port {port}");
 
