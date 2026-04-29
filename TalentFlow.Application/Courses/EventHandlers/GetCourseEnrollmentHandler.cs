@@ -4,7 +4,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using MediatR;
 using TalentFlow.Application.Courses.Queries;
-using TalentFlow.Application.Enrollments.DTOs;
 using TalentFlow.Application.Common.Interfaces;
 
 namespace TalentFlow.Application.Courses.Handlers

@@ -40,9 +40,11 @@ namespace TalentFlow.Api.Controllers
 
             if (string.IsNullOrWhiteSpace(command.Title) ||
                 string.IsNullOrWhiteSpace(command.Description) ||
-                string.IsNullOrWhiteSpace(command.Slug))
+                string.IsNullOrWhiteSpace(command.Slug) ||
+                string.IsNullOrWhiteSpace(command.ThumbnailUrl) ||
+                command.InstructorId == Guid.Empty)
             {
-                return BadRequest(ApiResponse.Fail<string>("Title, description, and slug are required", 400));
+                return BadRequest(ApiResponse.Fail<string>("Title, description, slug, thumbnail, and instructor are required", 400));
             }
 
             var courseId = await _mediator.Send(command);
@@ -54,31 +56,36 @@ namespace TalentFlow.Api.Controllers
             );
         }
 
-        // PUT: api/course/{id}
-        [HttpPut("{id:guid}")]
-        public async Task<IActionResult> UpdateCourse(Guid id, [FromBody] UpdateCourseCommand command)
-        {
-            if (command == null)
-                return BadRequest(ApiResponse.Fail<string>("Request body is required", 400));
 
-            if (id != command.Id) return BadRequest(ApiResponse.Fail<string>("ID mismatch", 400));
+        /// PUT: api/course/{courseId}/enrollments/{enrollmentId}
+        [HttpPut("{courseId:guid}/enrollments/{enrollmentId:guid}")]
+        public async Task<IActionResult> UpdateEnrollment(Guid courseId, Guid enrollmentId, [FromBody] UpdateEnrollmentCommand command)
+        {
+            if (command == null || enrollmentId != command.Id)
+                return BadRequest(ApiResponse.Fail<string>("Invalid request", 400));
 
             var result = await _mediator.Send(command);
             return result
-                ? Ok(ApiResponse.Success<string>("Course updated successfully."))
-                : NotFound(ApiResponse.Fail<string>("Course not found", 404));
+                ? Ok(ApiResponse.Success<string>("Enrollment updated successfully."))
+                : NotFound(ApiResponse.Fail<string>("Enrollment not found", 404));
         }
+
 
         // DELETE: api/course/{id}
         [HttpDelete("{id:guid}")]
         public async Task<IActionResult> DeleteCourse(Guid id)
         {
-            var deletedBy = User.FindFirst("userId")?.Value ?? "system";
-            var result = await _mediator.Send(new DeleteCourseCommand(id, deletedBy));
-            return result
-                ? Ok(ApiResponse.Success<string>("Course deleted successfully."))
-                : NotFound(ApiResponse.Fail<string>("Course not found", 404));
+            var course = await _repo.GetByIdAsync(id);
+            if (course == null) return NotFound(ApiResponse.Fail<string>("Course not found", 404));
+
+            // Use authenticated user if available
+            var deletedBy = User?.Identity?.Name ?? "system";
+
+            await _repo.SoftDeleteAsync(course, deletedBy);
+
+            return Ok(ApiResponse.Success<string>("Course deleted successfully."));
         }
+
 
         // GET: api/course/{slug}
         [HttpGet("{slug}")]
@@ -90,9 +97,10 @@ namespace TalentFlow.Api.Controllers
             var course = await _repo.GetBySlugAsync(slug);
             if (course == null) return NotFound(ApiResponse.Fail<string>("Course not found", 404));
 
-            var dto = course.ToDto();
+            var dto = course.ToDto(); // mapping now includes ThumbnailUrl, InstructorId, DurationMinutes, Level, Price, Tags, Rating
             return Ok(ApiResponse.Success<CourseDto>(dto, "Course retrieved successfully."));
         }
+
 
         // GET: api/course
         [HttpGet]
@@ -102,6 +110,9 @@ namespace TalentFlow.Api.Controllers
             var dtos = courses?.Select(c => c.ToDto()).ToList() ?? new List<CourseDto>();
             return Ok(ApiResponse.Success<List<CourseDto>>(dtos, "Courses retrieved successfully."));
         }
+
+
+
 
         // GET: api/course/learner/{userId}
         [HttpGet("learner/{userId:guid}")]
@@ -158,5 +169,21 @@ namespace TalentFlow.Api.Controllers
             var lessonId = await _mediator.Send(command);
             return CreatedAtAction(nameof(GetLessons), new { id = id }, ApiResponse.Success<object>(new { id = lessonId }, "Lesson created successfully.", 201));
         }
+        // PUT: api/course/{id}
+        [HttpPut("{id:guid}")]
+        public async Task<IActionResult> UpdateCourse(Guid id, [FromBody] UpdateCourseCommand command)
+        {
+            if (command == null)
+                return BadRequest(ApiResponse.Fail<string>("Request body is required", 400));
+
+            if (id != command.Id)
+                return BadRequest(ApiResponse.Fail<string>("ID mismatch", 400));
+
+            var result = await _mediator.Send(command);
+            return result
+                ? Ok(ApiResponse.Success<string>("Course updated successfully."))
+                : NotFound(ApiResponse.Fail<string>("Course not found", 404));
+        }
+
     }
 }

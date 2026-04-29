@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using TalentFlow.Application.Enrollments.DTOs;
 
 namespace TalentFlow.Application.Courses.DTOs
 {

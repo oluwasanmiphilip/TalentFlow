@@ -24,6 +24,17 @@ namespace TalentFlow.Persistence.Configurations
             builder.HasMany(c => c.Enrollments)
                 .WithOne()
                 .OnDelete(DeleteBehavior.Restrict);
+            builder.Property(c => c.ThumbnailUrl).HasMaxLength(500);
+            builder.Property(c => c.Level).HasMaxLength(50);
+            builder.Property(c => c.Price).HasColumnType("decimal(18,2)");
+            builder.Property(c => c.DurationMinutes);
+            builder.Property(c => c.Rating).HasColumnType("float");
+            builder.Property(c => c.Tags)
+                   .HasConversion(
+                       v => string.Join(',', v),
+                       v => v.Split(',', StringSplitOptions.RemoveEmptyEntries).ToList()
+                   );
+
         }
     }
 }

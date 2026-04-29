@@ -1,6 +1,5 @@
 ﻿using MediatR;
 using System;
-using TalentFlow.Application.Enrollments.DTOs;
 
 namespace TalentFlow.Application.Enrollments.Queries
 {

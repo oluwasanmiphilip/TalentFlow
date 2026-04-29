@@ -19,16 +19,13 @@ namespace TalentFlow.Application.Courses.Handlers
 
         public async Task<bool> Handle(DeleteCourseCommand request, CancellationToken ct)
         {
-            // Fetch course by Id (not Slug)
             var course = await _repo.GetByIdAsync(request.Id, ct);
             if (course == null || course.IsDeleted) return false;
 
-            // Controlled soft delete with audit info
-            course.SoftDelete(request.DeletedBy);
-
-            // Persist changes
-            await _repo.SoftDeleteAsync(course, ct);
+            // Just call repository with deletedBy
+            await _repo.SoftDeleteAsync(course, request.DeletedBy, ct);
             return true;
         }
+
     }
 }

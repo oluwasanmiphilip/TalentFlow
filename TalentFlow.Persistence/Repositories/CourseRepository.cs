@@ -66,12 +66,16 @@ namespace TalentFlow.Persistence.Repositories
             await _context.SaveChangesAsync(ct);
         }
 
-        public async Task SoftDeleteAsync(Course course, CancellationToken ct = default)
+        public async Task SoftDeleteAsync(Course course, string deletedBy, CancellationToken ct = default)
+
         {
             if (course == null) throw new ArgumentNullException(nameof(course));
-            course.SoftDelete(course.DeletedBy ?? "system");
+
+            course.SoftDelete(deletedBy);
+
             _context.Courses.Update(course);
             await _context.SaveChangesAsync(ct);
         }
+
     }
 }

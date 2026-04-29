@@ -1,36 +1,37 @@
-﻿using System.ComponentModel.DataAnnotations.Schema;
-using TalentFlow.Domain.Common;
-using TalentFlow.Domain.Events;
+﻿using TalentFlow.Domain.Common;
 
-[Table("enrollment")]
 public class Enrollment : EntityBase
 {
     public Guid Id { get; private set; }
     public Guid CourseId { get; private set; }
     public Guid UserId { get; private set; }
-    public DateTime EnrolledAt { get; private set; }
     public string Role { get; private set; } = "Learner";
-    public Guid? FirstLessonId { get; private set; }
+    public string Status { get; private set; } = "Active";
 
-    // Audit fields
+    public DateTime EnrolledAt { get; private set; }   // ✅ NEW
+
     public string? UpdatedBy { get; private set; }
     public DateTime? UpdatedAt { get; private set; }
+    public bool IsDeleted { get; private set; }
     public string? DeletedBy { get; private set; }
     public DateTime? DeletedAt { get; private set; }
-    public bool IsDeleted { get; private set; }
 
     private Enrollment() { } // EF Core
 
-    public Enrollment(Guid courseId, Guid userId, string role = "Learner", Guid? firstLessonId = null)
+    public Enrollment(Guid courseId, Guid userId, string role, Guid? firstLessonId = null)
     {
         Id = Guid.NewGuid();
         CourseId = courseId;
         UserId = userId;
         Role = role;
-        FirstLessonId = firstLessonId;
-        EnrolledAt = DateTime.UtcNow;
+        Status = "Active";
+        EnrolledAt = DateTime.UtcNow;   // ✅ set when created
+    }
 
-        AddDomainEvent(new UserEnrolledEvent(this));
+    public void Update(string updatedBy)
+    {
+        UpdatedBy = updatedBy;
+        UpdatedAt = DateTime.UtcNow;
     }
 
     public void SoftDelete(string deletedBy)
@@ -38,13 +39,12 @@ public class Enrollment : EntityBase
         IsDeleted = true;
         DeletedBy = deletedBy;
         DeletedAt = DateTime.UtcNow;
-
-        AddDomainEvent(new EnrollmentWithdrawnEvent(this));
+        Status = "Withdrawn";
     }
 
-    public void Update(string updatedBy)
+    public void ChangeStatus(string status, string updatedBy)
     {
-        UpdatedBy = updatedBy;
-        UpdatedAt = DateTime.UtcNow;
+        Status = status;
+        Update(updatedBy);
     }
 }

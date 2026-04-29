@@ -14,7 +14,7 @@ namespace TalentFlow.Application.Common.Interfaces
         Task<Course?> GetByIdAsync(Guid id, CancellationToken ct = default);
         Task AddAsync(Course course, CancellationToken ct = default);
         Task UpdateAsync(Course course, CancellationToken ct = default);
-        Task SoftDeleteAsync(Course course, CancellationToken ct = default);
+        Task SoftDeleteAsync(Course course, string deletedBy, CancellationToken ct = default);
 
         // ✅ FIXED: return a list, not a single course
         Task<List<Course>> GetByLearnerIdAsync(Guid learnerId, CancellationToken ct = default);

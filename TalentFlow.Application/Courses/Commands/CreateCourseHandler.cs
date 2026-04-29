@@ -22,15 +22,25 @@ namespace TalentFlow.Application.Courses.Handlers
 
         public async Task<Guid> Handle(CreateCourseCommand request, CancellationToken ct)
         {
-            var course = new Course(request.Title, request.Description, request.Slug);
+            var course = new Course(
+                request.Title,
+                request.Description,
+                request.Slug,
+                request.ThumbnailUrl,
+                request.InstructorId,
+                request.DurationMinutes,
+                request.Level,
+                request.Price,
+                request.Tags
+            );
 
             await _repo.AddAsync(course, ct);
 
-            // ✅ pass the Course object, not Guid
             var domainEvent = new CourseCreatedEvent(course);
             await _mediator.Publish(domainEvent, ct);
 
             return course.Id;
         }
+
     }
 }

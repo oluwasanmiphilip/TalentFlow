@@ -1,6 +1,5 @@
 ﻿// Application/Enrollments/Mappings/EnrollmentMappings.cs
 using TalentFlow.Domain.Entities;
-using TalentFlow.Application.Enrollments.DTOs;
 
 namespace TalentFlow.Application.Enrollments.Mappings
 {

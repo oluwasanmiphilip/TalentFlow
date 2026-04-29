@@ -8,7 +8,6 @@ using TalentFlow.Application.Common.Models;
 using TalentFlow.Application.CourseProgress.Commands;
 using TalentFlow.Application.Courses.DTOs; // ✅ Correct import
 using TalentFlow.Application.Enrollments.Commands;
-using TalentFlow.Application.Enrollments.DTOs;
 using TalentFlow.Application.Enrollments.Queries;
 
 namespace TalentFlow.API.Controllers
