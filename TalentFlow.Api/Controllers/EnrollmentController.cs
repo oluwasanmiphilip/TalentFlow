@@ -13,7 +13,6 @@ using TalentFlow.Application.Enrollments.Queries;
 
 namespace TalentFlow.API.Controllers
 {
-
     [ApiController]
     [Route("api/[controller]")]
     //[Authorize]
@@ -32,11 +31,11 @@ namespace TalentFlow.API.Controllers
         public async Task<IActionResult> GetEnrollment(Guid learnerId, Guid courseId)
         {
             var enrollment = await _mediator.Send(new GetEnrollmentQuery(learnerId, courseId));
-            if (enrollment == null) return NotFound(ApiResponse<string>.Fail("Enrollment not found", 404));
+            if (enrollment == null)
+                return NotFound(ApiResponse.Fail<string>("Enrollment not found", 404));
 
-            return Ok(ApiResponse<object>.Success(enrollment, "Enrollment retrieved successfully"));
+            return Ok(ApiResponse.Success<object>(enrollment, "Enrollment retrieved successfully"));
         }
-
 
         // GET: api/enrollment/course/{courseId}
         [HttpGet("course/{courseId}")]
@@ -52,15 +51,15 @@ namespace TalentFlow.API.Controllers
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateEnrollment(Guid id, [FromBody] UpdateEnrollmentCommand command)
         {
-            if (id != command.Id) return BadRequest(ApiResponse<string>.Fail("ID mismatch", 400));
+            if (id != command.Id) return BadRequest(ApiResponse.Fail<string>("ID mismatch", 400));
 
             var updatedBy = User.FindFirst("learner_id")?.Value ?? "system";
             var enrichedCommand = command with { UpdatedBy = updatedBy };
 
             var result = await _mediator.Send(enrichedCommand);
             return result
-                ? Ok(ApiResponse<string>.Success("Enrollment updated"))
-                : NotFound(ApiResponse<string>.Fail("Enrollment not found", 404));
+                ? Ok(ApiResponse.Success<string>("Enrollment updated"))
+                : NotFound(ApiResponse.Fail<string>("Enrollment not found", 404));
         }
 
         // DELETE: api/enrollment/{id}
@@ -82,13 +81,14 @@ namespace TalentFlow.API.Controllers
 
             return Ok(enrollment);
         }
+
         // PUT: api/enrollment/course/{courseId}/complete
         [HttpPut("course/{courseId}/complete")]
         public async Task<IActionResult> CompleteCourse(Guid courseId)
         {
             var learnerIdClaim = User.FindFirst("learner_id")?.Value;
             if (string.IsNullOrEmpty(learnerIdClaim))
-                return Unauthorized(ApiResponse<string>.Fail("Learner ID not found in token", 401));
+                return Unauthorized(ApiResponse.Fail<string>("Learner ID not found in token", 401));
 
             var learnerId = Guid.Parse(learnerIdClaim);
 
@@ -96,11 +96,9 @@ namespace TalentFlow.API.Controllers
             var result = await _mediator.Send(command);
 
             if (result == null)
-                return BadRequest(ApiResponse<string>.Fail("Course cannot be marked complete until all lessons are finished", 400));
+                return BadRequest(ApiResponse.Fail<string>("Course cannot be marked complete until all lessons are finished", 400));
 
-            return Ok(ApiResponse<object>.Success(result, "Course marked as completed"));
+            return Ok(ApiResponse.Success<object>(result, "Course marked as completed"));
         }
-
-
     }
 }

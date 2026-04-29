@@ -1,13 +1,13 @@
 ﻿// File Path: TalentFlow.API/Controllers/DashboardController.cs
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
+
+using System.Threading.Tasks;
 using MediatR;
+using Microsoft.AspNetCore.Mvc;
 using TalentFlow.Application.Common.Models;
 using TalentFlow.Application.Dashboard.Queries;
 
 namespace TalentFlow.API.Controllers
 {
-
     [ApiController]
     [Route("api/[controller]")]
     //[Authorize(Policy = "RequireLearner")]
@@ -24,11 +24,14 @@ namespace TalentFlow.API.Controllers
         public async Task<IActionResult> GetDashboard()
         {
             var learnerId = User.FindFirst("learner_id")?.Value;
-            if (learnerId == null)
-                return Unauthorized(ApiResponse<string>.Fail("Unauthorized access", 401));
+            if (string.IsNullOrWhiteSpace(learnerId))
+                return Unauthorized(ApiResponse.Fail<string>("Unauthorized access", 401));
 
             var dashboard = await _mediator.Send(new GetDashboardDataQuery(learnerId));
-            return Ok(ApiResponse<object>.Success(dashboard, "Dashboard retrieved successfully"));
+            if (dashboard == null)
+                return NotFound(ApiResponse.Fail<string>("Dashboard data not found", 404));
+
+            return Ok(ApiResponse.Success<object>(dashboard, "Dashboard retrieved successfully"));
         }
     }
 }

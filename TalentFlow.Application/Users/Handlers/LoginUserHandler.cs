@@ -3,7 +3,7 @@ using System.Threading.Tasks;
 using MediatR;
 using TalentFlow.Application.Common.Interfaces;
 using TalentFlow.Application.Users.Commands;
-using TalentFlow.Application.Users.DTOs;
+
 using TalentFlow.Application.Common.Interfaces;
 
 namespace TalentFlow.Application.Users.Handlers

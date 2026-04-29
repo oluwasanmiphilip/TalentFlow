@@ -1,6 +1,9 @@
-﻿using Microsoft.AspNetCore.Http;
-using System.Net;
+﻿using System.Net;
 using System.Text.Json;
+using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using TalentFlow.Application.Common.Exceptions;
 
 namespace TalentFlow.API.Middleware
 {
@@ -8,11 +11,13 @@ namespace TalentFlow.API.Middleware
     {
         private readonly RequestDelegate _next;
         private readonly ILogger<ExceptionMiddleware> _logger;
+        private readonly IHostEnvironment _env;
 
-        public ExceptionMiddleware(RequestDelegate next, ILogger<ExceptionMiddleware> logger)
+        public ExceptionMiddleware(RequestDelegate next, ILogger<ExceptionMiddleware> logger, IHostEnvironment env)
         {
             _next = next;
             _logger = logger;
+            _env = env;
         }
 
         public async Task InvokeAsync(HttpContext context)
@@ -27,18 +32,61 @@ namespace TalentFlow.API.Middleware
 
                 context.Response.ContentType = "application/json";
 
-                // ✅ Return 400 for known validation/business errors
-                context.Response.StatusCode = ex is ArgumentException || ex is InvalidOperationException
-                    ? (int)HttpStatusCode.BadRequest
-                    : (int)HttpStatusCode.InternalServerError;
+                int statusCode;
+                object payload;
 
-                var response = new
+                if (ex is DuplicateEmailException dupEx)
                 {
-                    message = "Request failed",//Check failure
-                    detail = ex.Message
-                };
+                    statusCode = (int)HttpStatusCode.Conflict;
+                    payload = new
+                    {
+                        success = false,
+                        data = (object?)null,
+                        message = "Email already registered",
+                        statusCode,
+                        errors = new { Email = new[] { $"The email '{dupEx.Email}' is already in use." } }
+                    };
+                }
+                else if (ex is ArgumentException || ex is InvalidOperationException)
+                {
+                    statusCode = (int)HttpStatusCode.BadRequest;
+                    payload = new
+                    {
+                        success = false,
+                        data = (object?)null,
+                        message = "Bad request",
+                        statusCode,
+                        errors = new { General = new[] { ex.Message } }
+                    };
+                }
+                else
+                {
+                    statusCode = (int)HttpStatusCode.InternalServerError;
+                    var message = "An unexpected error occurred";
+                    payload = new
+                    {
+                        success = false,
+                        data = (object?)null,
+                        message,
+                        statusCode
+                    };
+                }
 
-                await context.Response.WriteAsync(JsonSerializer.Serialize(response));
+                context.Response.StatusCode = statusCode;
+
+                // Include exception detail only in Development
+                var options = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
+                if (_env.IsDevelopment())
+                {
+                    var dict = JsonSerializer.Deserialize<Dictionary<string, object>>(JsonSerializer.Serialize(payload, options), options)
+                               ?? new Dictionary<string, object>();
+                    dict["detail"] = ex.Message;
+                    await context.Response.WriteAsync(JsonSerializer.Serialize(dict, options));
+                }
+                else
+                {
+                    await context.Response.WriteAsync(JsonSerializer.Serialize(payload, options));
+                }
             }
         }
     }

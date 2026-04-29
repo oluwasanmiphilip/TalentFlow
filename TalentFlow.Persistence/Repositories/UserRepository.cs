@@ -21,8 +21,6 @@ namespace TalentFlow.Persistence.Repositories
             return await _context.Users.FirstOrDefaultAsync(u => u.Id == id && !u.IsDeleted, ct);
         }
 
-       
-
         public async Task<User?> GetByLearnerIdAsync(string learnerId, CancellationToken ct = default)
         {
             return await _context.Users.FirstOrDefaultAsync(u => u.LearnerId == learnerId && !u.IsDeleted, ct);
@@ -32,16 +30,19 @@ namespace TalentFlow.Persistence.Repositories
         {
             if (user == null) throw new ArgumentNullException(nameof(user));
             await _context.Users.AddAsync(user, ct);
+            // NOTE: if you use IUnitOfWork to commit, remove SaveChangesAsync here.
             await _context.SaveChangesAsync(ct);
         }
 
         public async Task<User?> GetByEmailAsync(string email, CancellationToken ct = default)
         {
-            var normalizedEmail = email.Trim().ToLower();
-
+            if (string.IsNullOrWhiteSpace(email)) return null;
+            var normalized = email.Trim().ToLowerInvariant();
             return await _context.Users
-                .FirstOrDefaultAsync(u => u.Email == normalizedEmail && !u.IsDeleted, ct);
+                .AsNoTracking()
+                .FirstOrDefaultAsync(u => u.Email.ToLower() == normalized && !u.IsDeleted, ct);
         }
+
         public async Task UpdateAsync(User user, CancellationToken ct = default)
         {
             if (user == null) throw new ArgumentNullException(nameof(user));
@@ -55,6 +56,15 @@ namespace TalentFlow.Persistence.Repositories
             user.SoftDelete(user.DeletedBy ?? "system");
             _context.Users.Update(user);
             await _context.SaveChangesAsync(ct);
+        }
+
+        public async Task<bool> ExistsByEmailAsync(string email, CancellationToken ct = default)
+        {
+            if (string.IsNullOrWhiteSpace(email)) return false;
+            var normalized = email.Trim().ToLowerInvariant();
+            return await _context.Users
+                .AsNoTracking()
+                .AnyAsync(u => u.Email.ToLower() == normalized && !u.IsDeleted, ct);
         }
     }
 }

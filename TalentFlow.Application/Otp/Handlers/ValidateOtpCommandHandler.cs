@@ -1,7 +1,6 @@
 ﻿using MediatR;
 using TalentFlow.Application.Common.Interfaces;
 using TalentFlow.Application.Otp.Commands;
-using TalentFlow.Application.Users.DTOs;
 using TalentFlow.Domain.Entities;
 
 public class ValidateOtpCommandHandler : IRequestHandler<ValidateOtpCommand, UserDto?>

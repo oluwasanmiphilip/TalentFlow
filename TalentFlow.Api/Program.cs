@@ -1,6 +1,9 @@
+// File: src/TalentFlow.Api/Program.cs
+
 using Asp.Versioning;
 using DotNetEnv;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Http.Features;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
@@ -26,6 +29,7 @@ using TalentFlow.Infrastructure.Notifications;
 using TalentFlow.Infrastructure.Security;
 using TalentFlow.Infrastructure.Services;
 using TalentFlow.Infrastructure.Sms;
+using TalentFlow.Infrastructure.Configuration; // <-- added
 using TalentFlow.Persistence;
 using TalentFlow.Persistence.Repositories;
 
@@ -48,9 +52,15 @@ builder.Logging.AddConsole();
 builder.Host.UseSerilog((ctx, lc) => lc.ReadFrom.Configuration(ctx.Configuration));
 
 // ============================
-// CONTROLLERS
+// CONTROLLERS + FluentValidation
 // ============================
+// Register controllers and FluentValidation validators from the application assemblies.
+// Note: RegisterValidatorsFromAssemblyContaining<StartupMarker>() will scan for validators.
 builder.Services.AddControllers();
+//builder.Services.AddValidatorsFromAssemblyContaining<RegisterUserCommand>();
+
+
+
 // ============================
 // HTTP CLIENT
 // ============================
@@ -95,9 +105,27 @@ builder.Services.AddScoped<IVideoRepository, VideoRepository>();
 builder.Services.AddScoped<ICertificateRepository, CertificateRepository>();
 builder.Services.AddScoped<IOtpRepository, OtpRepository>();
 builder.Services.AddScoped<ISubmissionRepository, SubmissionRepository>();
+//builder.Services.AddValidatorsFromAssemblyContaining<UpdateUserProfileRequestValidator>();
+
 
 // ============================
-// SMTP CONFIG (🔥 FIXED)
+// FILE STORAGE (Local) + Options
+// ============================
+// Bind FileStorage options from configuration and register the local implementation.
+// Ensure appsettings.json (or environment) contains FileStorage:BaseUrl and FileStorage:UploadsPath.
+builder.Services.Configure<FileStorageOptions>(builder.Configuration.GetSection("FileStorage"));
+builder.Services.AddScoped<IFileStorageService, LocalFileStorageService>();
+
+// ============================
+// Increase multipart body length if needed
+// ============================
+builder.Services.Configure<FormOptions>(options =>
+{
+    options.MultipartBodyLengthLimit = 10 * 1024 * 1024; // 10 MB
+});
+
+// ============================
+// SMTP CONFIG
 // ============================
 builder.Services.Configure<SmtpSettings>(options =>
 {
@@ -127,14 +155,11 @@ builder.Services.AddTransient<IEmailService>(sp =>
     return new SmtpEmailService(settings);
 });
 
-
-//SMPT SERVICE
 builder.Services.AddTransient<ISmsService>(sp =>
 {
     var settings = sp.GetRequiredService<IOptions<SmtpSettings>>().Value;
     return new SmtpSmsService(settings);
 });
-
 
 // ============================
 // SERVICES
@@ -152,8 +177,6 @@ builder.Services.AddScoped<ILeanersProgressRepository, LessonProgressRepository>
 builder.Services.AddScoped<IProgressRepository, ProgressRepository>();
 builder.Services.AddScoped<ILessonRepository, LessonRepository>();
 builder.Services.AddScoped<ILearningWorkRepository, LearningWorkRepository>();
-
-
 
 // ============================
 // MESSAGING
@@ -184,8 +207,8 @@ builder.Services.AddMediatR(cfg =>
 {
     cfg.RegisterServicesFromAssembly(typeof(Program).Assembly);
     cfg.RegisterServicesFromAssembly(typeof(RegisterUserCommand).Assembly);
-cfg.RegisterServicesFromAssembly(typeof(SaveLoginTokenCommand).Assembly);
-cfg.RegisterServicesFromAssembly(typeof(UpdateVideoPositionCommand).Assembly);
+    cfg.RegisterServicesFromAssembly(typeof(SaveLoginTokenCommand).Assembly);
+    cfg.RegisterServicesFromAssembly(typeof(UpdateVideoPositionCommand).Assembly);
     cfg.RegisterServicesFromAssembly(typeof(GetAllInstructorsQuery).Assembly);
 });
 
@@ -245,8 +268,7 @@ builder.Services.AddCors(options =>
     {
         var allowedOrigins = builder.Configuration
             .GetSection("AllowedOrigins")
-            .Get<string[]>() ?? new[]
-            {
+            .Get<string[]>() ?? new[] {
                 "http://localhost:5173",
                 "https://talent-flow-kappa-six.vercel.app"
             };
@@ -268,7 +290,7 @@ builder.Services.AddApiVersioning(options =>
 });
 
 // ============================
-// SWAGGER
+// SWAGGER / OpenAPI
 // ============================
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddOpenApiDocument(config =>
@@ -297,16 +319,17 @@ builder.Services.AddOpenApiDocument(config =>
 var app = builder.Build();
 
 app.UseMiddleware<ExceptionMiddleware>();
-app.UseRouting();
-app.UseCors("AllowFrontend");
 app.UseMiddleware<AuthMiddleware>();
+
+app.UseCors("AllowFrontend");
 
 app.UseOpenApi();
 app.UseSwaggerUi(settings => settings.Path = "/swagger");
 app.UseHttpsRedirection();
+app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();
-
+app.UseStaticFiles();
 app.MapControllers();
 app.MapGet("/", () => Results.Ok("TalentFlow API Running"));
 app.MapGet("/health", () => Results.Ok("Healthy"));

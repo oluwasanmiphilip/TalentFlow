@@ -1,60 +1,75 @@
-﻿using MediatR;
+﻿// File Path: src/TalentFlow.Api/Controllers/OtpController.cs
+
+using System;
+using System.Threading.Tasks;
+using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using TalentFlow.Application.Common.Models;
 using TalentFlow.Application.Common.Services;
 using TalentFlow.Application.Otp.Commands;
 
-
-[ApiController]
-[Route("api/[controller]")]
-public class OtpController : ControllerBase
+namespace TalentFlow.Api.Controllers
 {
-    private readonly IMediator _mediator;
-    private readonly TokenService _tokenService;
-
-    public OtpController(IMediator mediator, TokenService tokenService)
+    [ApiController]
+    [Route("api/[controller]")]
+    public class OtpController : ControllerBase
     {
-        _mediator = mediator;
-        _tokenService = tokenService;
-    }
+        private readonly IMediator _mediator;
+        private readonly TokenService _tokenService;
 
-    [HttpPost("generate")]
-    public async Task<IActionResult> Generate([FromBody] Guid userId)
-    {
-        var code = await _mediator.Send(new GenerateOtpCommand
+        public OtpController(IMediator mediator, TokenService tokenService)
         {
-            UserId = userId,
-            Channel = "email"
-        });
+            _mediator = mediator;
+            _tokenService = tokenService;
+        }
 
-        return Ok(ApiResponse<string>.Success(code, "OTP generated successfully"));
-    }
-
-    [HttpPost("resend")]
-    public async Task<IActionResult> Resend([FromBody] Guid userId)
-    {
-        var code = await _mediator.Send(new GenerateOtpCommand
+        [HttpPost("generate")]
+        public async Task<IActionResult> Generate([FromBody] Guid userId)
         {
-            UserId = userId,
-            Channel = "email"
-        });
+            if (userId == Guid.Empty)
+                return BadRequest(ApiResponse.Fail<string>("UserId is required", 400));
 
-        return Ok(ApiResponse<string>.Success(code, "OTP resent successfully"));
-    }
+            var code = await _mediator.Send(new GenerateOtpCommand
+            {
+                UserId = userId,
+                Channel = "email"
+            });
 
-    [HttpPost("validate")]
-    public async Task<IActionResult> Validate([FromBody] ValidateOtpCommand command)
-    {
-        var userDto = await _mediator.Send(command);
-        if (userDto == null)
-            return BadRequest(ApiResponse<string>.Fail("Invalid or expired OTP", 400));
+            return Ok(ApiResponse.Success<string>(code, "OTP generated successfully"));
+        }
 
-        var tokens = _tokenService.IssueTokens(userDto);
-
-        return Ok(ApiResponse<object>.Success(new
+        [HttpPost("resend")]
+        public async Task<IActionResult> Resend([FromBody] Guid userId)
         {
-            accessToken = tokens.accessToken,
-            refreshToken = tokens.refreshToken
-        }, "OTP verified successfully. Tokens issued."));
+            if (userId == Guid.Empty)
+                return BadRequest(ApiResponse.Fail<string>("UserId is required", 400));
+
+            var code = await _mediator.Send(new GenerateOtpCommand
+            {
+                UserId = userId,
+                Channel = "email"
+            });
+
+            return Ok(ApiResponse.Success<string>(code, "OTP resent successfully"));
+        }
+
+        [HttpPost("validate")]
+        public async Task<IActionResult> Validate([FromBody] ValidateOtpCommand command)
+        {
+            if (command == null || command.UserId == Guid.Empty || string.IsNullOrWhiteSpace(command.Code))
+                return BadRequest(ApiResponse.Fail<string>("UserId and OTP code are required", 400));
+
+            var userDto = await _mediator.Send(command);
+            if (userDto == null)
+                return BadRequest(ApiResponse.Fail<string>("Invalid or expired OTP", 400));
+
+            var tokens = _tokenService.IssueTokens(userDto);
+
+            return Ok(ApiResponse.Success<object>(new
+            {
+                accessToken = tokens.accessToken,
+                refreshToken = tokens.refreshToken
+            }, "OTP verified successfully. Tokens issued."));
+        }
     }
 }

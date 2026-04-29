@@ -1,14 +1,16 @@
-﻿using System.Threading;
+﻿using MediatR;
+using System;
+using System.Text.Json;
+using System.Threading;
 using System.Threading.Tasks;
-using MediatR;
-using TalentFlow.Application.Users.Commands;
-using TalentFlow.Application.Users.DTOs;
+using Microsoft.EntityFrameworkCore;
 using TalentFlow.Application.Common.Interfaces;
+using TalentFlow.Application.Users.Commands;
 using TalentFlow.Domain.Entities;
 
 namespace TalentFlow.Application.Users.Handlers
 {
-    public class RegisterUserHandler : IRequestHandler<RegisterUserCommand, UserDto>
+    public class RegisterUserHandler : IRequestHandler<RegisterUserCommand, UserDto?>
     {
         private readonly IUserRepository _userRepository;
         private readonly IUnitOfWork _unitOfWork;
@@ -24,13 +26,28 @@ namespace TalentFlow.Application.Users.Handlers
             _passwordHasher = passwordHasher;
         }
 
-        public async Task<UserDto> Handle(RegisterUserCommand request, CancellationToken cancellationToken)
+        public async Task<UserDto?> Handle(RegisterUserCommand request, CancellationToken cancellationToken)
         {
+            // Normalize and validate email early
+            var email = (request.Email ?? string.Empty).Trim().ToLowerInvariant();
+            if (string.IsNullOrWhiteSpace(email))
+                return null;
+
+            // 1) Check uniqueness at application level
+            if (await _userRepository.ExistsByEmailAsync(email, cancellationToken))
+            {
+                // Email already in use — return null so controller can map to 409/Conflict or friendly error
+                return null;
+            }
+
             var passwordHash = _passwordHasher.Hash(request.Password);
 
-            // ✅ Pass phoneNumber as the last argument
+            // Build notification prefs JSON; default to true if not provided
+            var emailPref = request.EmailNotifications ?? true;
+            var notificationPrefs = JsonSerializer.Serialize(new { email = emailPref });
+
             var user = new User(
-                request.Email,
+                email,
                 request.FullName,
                 passwordHash,
                 request.Role,
@@ -39,10 +56,31 @@ namespace TalentFlow.Application.Users.Handlers
                 request.PhoneNumber
             );
 
-            await _userRepository.AddAsync(user, cancellationToken);
-            await _unitOfWork.SaveChangesAsync(cancellationToken);
+            // Set optional profile fields
+            if (!string.IsNullOrWhiteSpace(request.Bio))
+            {
+                typeof(User).GetProperty("Bio")?.SetValue(user, request.Bio);
+            }
 
-            // ✅ Return all relevant fields including PhoneNumber
+            if (!string.IsNullOrWhiteSpace(request.ProfilePhotoUrl))
+            {
+                typeof(User).GetProperty("ProfilePhotoUrl")?.SetValue(user, request.ProfilePhotoUrl);
+            }
+
+            typeof(User).GetProperty("NotificationPrefs")?.SetValue(user, notificationPrefs);
+
+            try
+            {
+                await _userRepository.AddAsync(user, cancellationToken);
+                await _unitOfWork.SaveChangesAsync(cancellationToken);
+            }
+            catch (DbUpdateException)
+            {
+                // A DB-level uniqueness violation may still occur due to race conditions.
+                // Return null so the controller can respond with a Conflict (409).
+                return null;
+            }
+
             return new UserDto
             {
                 Id = user.Id,
@@ -51,7 +89,11 @@ namespace TalentFlow.Application.Users.Handlers
                 Role = user.Role,
                 Discipline = user.Discipline,
                 CohortYear = user.CohortYear,
-                PhoneNumber = user.PhoneNumber
+                PhoneNumber = user.PhoneNumber,
+                Bio = user.Bio,
+                ProfilePhotoUrl = user.ProfilePhotoUrl,
+                EmailNotifications = emailPref,
+                LearnerId = user.LearnerId
             };
         }
     }

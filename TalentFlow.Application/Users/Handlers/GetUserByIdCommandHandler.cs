@@ -3,7 +3,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using MediatR;
 using TalentFlow.Application.Users.Commands;
-using TalentFlow.Application.Users.DTOs;
 using TalentFlow.Application.Common.Interfaces;
 
 namespace TalentFlow.Application.Users.Handlers
@@ -30,7 +29,11 @@ namespace TalentFlow.Application.Users.Handlers
                 Role = user.Role,
                 Discipline = user.Discipline,
                 CohortYear = user.CohortYear,
-                PhoneNumber = user.PhoneNumber
+                PhoneNumber = user.PhoneNumber,
+                ProfilePhotoUrl = user.ProfilePhotoUrl,
+                Bio = user.Bio,
+                EmailNotifications = user.EmailNotifications,
+                LearnerId = user.LearnerId
             };
         }
     }

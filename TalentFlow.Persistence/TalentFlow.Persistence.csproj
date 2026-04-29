@@ -30,4 +30,8 @@
     <ProjectReference Include="..\TalentFlow.Domain\TalentFlow.Domain.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="NewFolder\" />
+  </ItemGroup>
+
 </Project>

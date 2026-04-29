@@ -1,6 +1,5 @@
 ﻿using System;
 using MediatR;
-using TalentFlow.Application.Users.DTOs;
 
 namespace TalentFlow.Application.Otp.Commands
 {
