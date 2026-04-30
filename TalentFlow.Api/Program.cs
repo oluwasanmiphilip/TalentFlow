@@ -271,6 +271,15 @@ builder.Services.AddOpenApiDocument(config =>
 // ============================
 var app = builder.Build();
 
+
+
+// AUTOMATIC MIGRATION
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<TalentFlowDbContext>();
+    db.Database.Migrate();
+}
+
 app.UseMiddleware<ExceptionMiddleware>();
 app.UseMiddleware<AuthMiddleware>();
 
