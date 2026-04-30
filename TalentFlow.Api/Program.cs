@@ -64,27 +64,7 @@ builder.Services.AddHttpClient();
 // ============================
 builder.Services.AddScoped<DomainEventDispatcher>();
 
-// ============================
-// DATABASE CONFIG
-// ============================
-var connectionString =
-    builder.Configuration.GetConnectionString("Production")
-    ?? builder.Configuration["ConnectionStrings:Production"];
 
-if (string.IsNullOrEmpty(connectionString))
-{
-    Console.WriteLine("⚠️ WARNING: Database connection string is missing");
-}
-
-builder.Services.AddDbContext<TalentFlowDbContext>((serviceProvider, options) =>
-{
-    if (!string.IsNullOrEmpty(connectionString))
-    {
-        options.UseNpgsql(connectionString, npgsqlOptions => npgsqlOptions.EnableRetryOnFailure(5));
-    }
-
-    options.UseApplicationServiceProvider(serviceProvider);
-});
 
 // ============================
 // REPOSITORIES
@@ -270,7 +250,36 @@ builder.Services.AddOpenApiDocument(config =>
 // BUILD APP
 // ============================
 var app = builder.Build();
+// ============================
+// DATABASE CONFIG
+// ============================
+var connectionString =
+    builder.Configuration.GetConnectionString("Production")
+    ?? builder.Configuration["ConnectionStrings:Production"];
 
+if (string.IsNullOrEmpty(connectionString))
+{
+    Console.WriteLine("⚠️ WARNING: Database connection string is missing");
+}
+else
+{
+    // Mask the password before logging
+    var safeConnectionString = connectionString.Replace(
+        $"Password={builder.Configuration["ConnectionStrings:Production"]?.Split("Password=")[1]?.Split(';')[0]}",
+        "Password=****"
+    );
+    Console.WriteLine($"✅ Using connection string: {safeConnectionString}");
+}
+
+builder.Services.AddDbContext<TalentFlowDbContext>((serviceProvider, options) =>
+{
+    if (!string.IsNullOrEmpty(connectionString))
+    {
+        options.UseNpgsql(connectionString, npgsqlOptions => npgsqlOptions.EnableRetryOnFailure(5));
+    }
+
+    options.UseApplicationServiceProvider(serviceProvider);
+});
 
 
 // AUTOMATIC MIGRATION
