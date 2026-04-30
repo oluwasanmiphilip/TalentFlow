@@ -13,7 +13,7 @@ namespace TalentFlow.API.Controllers
 
     [ApiController]
     [Route("api/[controller]")]
-    //[Authorize]
+    [Authorize]
     public class QuestionController : ControllerBase
     {
         private readonly IMediator _mediator;

@@ -1,4 +1,5 @@
 ﻿using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Collections.Generic;
@@ -13,6 +14,7 @@ namespace TalentFlow.API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    
     public class LearningWorksController : ControllerBase
     {
         private readonly IMediator _mediator;

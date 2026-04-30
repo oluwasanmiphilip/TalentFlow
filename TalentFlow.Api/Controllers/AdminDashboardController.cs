@@ -8,7 +8,7 @@ namespace TalentFlow.API.Controllers
 {
     [ApiController]
     [Route("api/dashboard/admin")]
-    //[Authorize]
+    [Authorize]
     public class AdminDashboardController : ControllerBase
     {
         private readonly IMediator _mediator;
