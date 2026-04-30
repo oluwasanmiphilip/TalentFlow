@@ -135,7 +135,7 @@ builder.Services.AddScoped<ICourseProgressRepository, CourseProgressRepository>(
 builder.Services.AddScoped<ILeanersProgressRepository, LessonProgressRepository>();
 
 builder.Services.AddScoped<IProgressRepository, ProgressRepository>();
-builder.Services.AddScoped<ILessonRepository, LessonRepository>();
+//builder.Services.AddScoped<ILessonRepository, LessonRepository>();
 builder.Services.AddScoped<ILearningWorkRepository, LearningWorkRepository>();
 
 // ============================
@@ -171,7 +171,7 @@ builder.Services.AddMediatR(cfg =>
 // JWT AUTH
 // ============================
 
-var jwtSecret = builder.Configuration["Jwt:Production:Secret"] ?? "default_dev_secret_key";
+var jwtSecret = builder.Configuration["Jwt:Production:Secret"] ?? "superlongjwtsecretkeytokenhiddenfor_dev";
 
 var key = Encoding.UTF8.GetBytes(jwtSecret);
 
@@ -242,14 +242,6 @@ builder.Services.AddOpenApiDocument(config =>
     );
 });
 
-
-
-
-
-// ============================
-// BUILD APP
-// ============================
-var app = builder.Build();
 // ============================
 // DATABASE CONFIG
 // ============================
@@ -280,6 +272,14 @@ builder.Services.AddDbContext<TalentFlowDbContext>((serviceProvider, options) =>
 
     options.UseApplicationServiceProvider(serviceProvider);
 });
+
+
+
+// ============================
+// BUILD APP
+// ============================
+var app = builder.Build();
+
 
 
 // AUTOMATIC MIGRATION
