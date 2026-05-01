@@ -3,6 +3,8 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.EntityFrameworkCore;
+using System.ComponentModel.DataAnnotations;
 using TalentFlow.Application.Common.Exceptions;
 
 namespace TalentFlow.API.Middleware
@@ -35,53 +37,78 @@ namespace TalentFlow.API.Middleware
                 int statusCode;
                 object payload;
 
-                if (ex is DuplicateEmailException dupEx)
+                switch (ex)
                 {
-                    statusCode = (int)HttpStatusCode.Conflict;
-                    payload = new
-                    {
-                        success = false,
-                        data = (object?)null,
-                        message = "Email already registered",
-                        statusCode,
-                        errors = new { Email = new[] { $"The email '{dupEx.Email}' is already in use." } }
-                    };
-                }
-                else if (ex is NotFoundException nfEx)
-                {
-                    statusCode = (int)HttpStatusCode.NotFound;
-                    payload = new
-                    {
-                        success = false,
-                        data = (object?)null,
-                        message = nfEx.Message,
-                        statusCode,
-                        errors = new { Resource = new[] { nfEx.Message } }
-                    };
-                }
-                else if (ex is ArgumentException || ex is InvalidOperationException)
-                {
-                    statusCode = (int)HttpStatusCode.BadRequest;
-                    payload = new
-                    {
-                        success = false,
-                        data = (object?)null,
-                        message = "Bad request",
-                        statusCode,
-                        errors = new { General = new[] { ex.Message } }
-                    };
-                }
-                else
-                {
-                    statusCode = (int)HttpStatusCode.InternalServerError;
-                    var message = "An unexpected error occurred";
-                    payload = new
-                    {
-                        success = false,
-                        data = (object?)null,
-                        message,
-                        statusCode
-                    };
+                    case DuplicateEmailException dupEx:
+                        statusCode = (int)HttpStatusCode.Conflict;
+                        payload = new
+                        {
+                            success = false,
+                            data = (object?)null,
+                            message = "Email already registered",
+                            statusCode,
+                            errors = new { Email = new[] { $"The email '{dupEx.Email}' is already in use." } }
+                        };
+                        break;
+
+                    case NotFoundException nfEx:
+                        statusCode = (int)HttpStatusCode.NotFound;
+                        payload = new
+                        {
+                            success = false,
+                            data = (object?)null,
+                            message = nfEx.Message,
+                            statusCode,
+                            errors = new { Resource = new[] { nfEx.Message } }
+                        };
+                        break;
+
+                    case ValidationException valEx:
+                        statusCode = (int)HttpStatusCode.BadRequest;
+                        payload = new
+                        {
+                            success = false,
+                            data = (object?)null,
+                            message = "Validation failed",
+                            statusCode,
+                            errors = new { Validation = new[] { valEx.Message } }
+                        };
+                        break;
+
+                    case ArgumentException or InvalidOperationException:
+                        statusCode = (int)HttpStatusCode.BadRequest;
+                        payload = new
+                        {
+                            success = false,
+                            data = (object?)null,
+                            message = "Bad request",
+                            statusCode,
+                            errors = new { General = new[] { ex.Message } }
+                        };
+                        break;
+
+                    case DbUpdateException dbEx:
+                        statusCode = (int)HttpStatusCode.Conflict;
+                        payload = new
+                        {
+                            success = false,
+                            data = (object?)null,
+                            message = "Database update failed (duplicate or constraint violation).",
+                            statusCode,
+                            errors = new { Database = new[] { dbEx.InnerException?.Message ?? dbEx.Message } }
+                        };
+                        break;
+
+                    default:
+                        statusCode = (int)HttpStatusCode.InternalServerError;
+                        payload = new
+                        {
+                            success = false,
+                            data = (object?)null,
+                            message = "An unexpected error occurred",
+                            statusCode
+                        };
+                        break;
                 }
 
                 context.Response.StatusCode = statusCode;
@@ -90,9 +117,11 @@ namespace TalentFlow.API.Middleware
 
                 if (_env.IsDevelopment())
                 {
-                    var dict = JsonSerializer.Deserialize<Dictionary<string, object>>(JsonSerializer.Serialize(payload, options), options)
-                               ?? new Dictionary<string, object>();
-                    dict["detail"] = ex.Message;
+                    var dict = JsonSerializer.Deserialize<Dictionary<string, object>>(
+                        JsonSerializer.Serialize(payload, options), options
+                    ) ?? new Dictionary<string, object>();
+
+                    dict["detail"] = ex.ToString(); // full stack trace in dev
                     await context.Response.WriteAsync(JsonSerializer.Serialize(dict, options));
                 }
                 else
