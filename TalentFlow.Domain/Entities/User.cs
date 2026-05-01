@@ -5,7 +5,7 @@ using TalentFlow.Domain.Events;
 
 namespace TalentFlow.Domain.Entities
 {
-    [Table("userss")]
+    [Table("users")]
     public class User : EntityBase
     {
         public Guid Id { get; private set; }
