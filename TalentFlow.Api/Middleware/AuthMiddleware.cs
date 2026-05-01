@@ -25,11 +25,8 @@ public class AuthMiddleware
 
             if (user?.LastLoginToken != token)
             {
-                context.Response.Headers.Append("Access-Control-Allow-Origin", context.Request.Headers["Origin"].ToString());
-                context.Response.Headers.Append("Access-Control-Allow-Headers", "Authorization, Content-Type");
-                context.Response.StatusCode = StatusCodes.Status401Unauthorized;
-                await context.Response.WriteAsync("Session expired or logged in elsewhere");
-                return;
+                // ✅ Throw instead of writing directly
+                throw new UnauthorizedAccessException("Session expired or logged in elsewhere");
             }
         }
 

@@ -99,6 +99,18 @@ namespace TalentFlow.API.Middleware
                         };
                         break;
 
+                    case UnauthorizedAccessException unauthEx:
+                        statusCode = (int)HttpStatusCode.Unauthorized;
+                        payload = new
+                        {
+                            success = false,
+                            data = (object?)null,
+                            message = "Unauthorized",
+                            statusCode,
+                            errors = new { Auth = new[] { unauthEx.Message } }
+                        };
+                        break;
+
                     default:
                         statusCode = (int)HttpStatusCode.InternalServerError;
                         payload = new
