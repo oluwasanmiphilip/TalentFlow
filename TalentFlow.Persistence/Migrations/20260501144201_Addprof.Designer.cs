@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using TalentFlow.Persistence;
@@ -11,9 +12,11 @@ using TalentFlow.Persistence;
 namespace TalentFlow.Persistence.Migrations
 {
     [DbContext(typeof(TalentFlowDbContext))]
-    partial class TalentFlowDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260501144201_Addprof")]
+    partial class Addprof
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -809,7 +812,7 @@ namespace TalentFlow.Persistence.Migrations
 
                     b.HasIndex("RoleId");
 
-                    b.ToTable("userss");
+                    b.ToTable("users");
                 });
 
             modelBuilder.Entity("TalentFlow.Domain.Entities.Video", b =>
