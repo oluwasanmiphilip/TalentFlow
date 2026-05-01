@@ -7,6 +7,8 @@ using Microsoft.EntityFrameworkCore;
 using TalentFlow.Application.Common.Interfaces;
 using TalentFlow.Application.Users.Commands;
 using TalentFlow.Domain.Entities;
+using TalentFlow.Application.Common.Exceptions; // ✅ Import your custom exceptions
+using System.Net.Mail; // ✅ For email format validation
 
 namespace TalentFlow.Application.Users.Handlers
 {
@@ -31,13 +33,16 @@ namespace TalentFlow.Application.Users.Handlers
             // Normalize and validate email early
             var email = (request.Email ?? string.Empty).Trim().ToLowerInvariant();
             if (string.IsNullOrWhiteSpace(email))
-                return null;
+                throw new ArgumentException("Email is required");
+
+            if (!IsValidEmail(email))
+                throw new ArgumentException("Email format is invalid");
 
             // 1) Check uniqueness at application level
             if (await _userRepository.ExistsByEmailAsync(email, cancellationToken))
             {
-                // Email already in use — return null so controller can map to 409/Conflict or friendly error
-                return null;
+                // ✅ Throw custom exception instead of returning null
+                throw new DuplicateEmailException(email);
             }
 
             var passwordHash = _passwordHasher.Hash(request.Password);
@@ -79,17 +84,15 @@ namespace TalentFlow.Application.Users.Handlers
                 user.AttachProfile(profile);
             }
 
-
             try
             {
                 await _userRepository.AddAsync(user, cancellationToken);
                 await _unitOfWork.SaveChangesAsync(cancellationToken);
             }
-            catch (DbUpdateException)
+            catch (DbUpdateException dbEx)
             {
-                // A DB-level uniqueness violation may still occur due to race conditions.
-                // Return null so the controller can respond with a Conflict (409).
-                return null;
+                // ✅ Still catch DB-level uniqueness violations (race conditions)
+                throw new DuplicateEmailException(email, dbEx);
             }
 
             return new UserDto
@@ -106,6 +109,19 @@ namespace TalentFlow.Application.Users.Handlers
                 EmailNotifications = emailPref,
                 LearnerId = user.LearnerId
             };
+        }
+
+        private bool IsValidEmail(string email)
+        {
+            try
+            {
+                var addr = new MailAddress(email);
+                return addr.Address == email;
+            }
+            catch
+            {
+                return false;
+            }
         }
     }
 }

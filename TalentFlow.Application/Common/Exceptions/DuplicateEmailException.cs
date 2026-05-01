@@ -11,5 +11,12 @@ namespace TalentFlow.Application.Common.Exceptions
         {
             Email = email;
         }
+
+        // ✅ Overload that accepts an inner exception
+        public DuplicateEmailException(string email, Exception innerException)
+            : base($"The email '{email}' is already registered.", innerException)
+        {
+            Email = email;
+        }
     }
 }
