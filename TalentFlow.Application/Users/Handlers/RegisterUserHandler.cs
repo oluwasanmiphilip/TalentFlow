@@ -56,18 +56,29 @@ namespace TalentFlow.Application.Users.Handlers
                 request.PhoneNumber
             );
 
-            // Set optional profile fields
+            // Set optional profile fields directly
             if (!string.IsNullOrWhiteSpace(request.Bio))
-            {
-                typeof(User).GetProperty("Bio")?.SetValue(user, request.Bio);
-            }
+                user.GetType().GetProperty("Bio")?.SetValue(user, request.Bio);
 
             if (!string.IsNullOrWhiteSpace(request.ProfilePhotoUrl))
+                user.GetType().GetProperty("ProfilePhotoUrl")?.SetValue(user, request.ProfilePhotoUrl);
+
+            user.GetType().GetProperty("NotificationPrefs")?.SetValue(user, notificationPrefs);
+
+            // Attach ProfileUser if provided
+            if (request.ProfileUser != null)
             {
-                typeof(User).GetProperty("ProfilePhotoUrl")?.SetValue(user, request.ProfilePhotoUrl);
+                var profile = new ProfileUser(
+                    user.Id,
+                    request.ProfileUser.Bio ?? string.Empty,
+                    request.ProfileUser.ProfilePhotoUrl,
+                    request.ProfileUser.ProgressVisibility,
+                    request.ProfileUser.NotificationPrefs
+                );
+
+                user.AttachProfile(profile);
             }
 
-            typeof(User).GetProperty("NotificationPrefs")?.SetValue(user, notificationPrefs);
 
             try
             {

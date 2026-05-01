@@ -16,5 +16,18 @@ namespace TalentFlow.Application.Users.Commands
         public bool? EmailNotifications { get; set; }
         public string? ProfilePhotoUrl { get; set; }
         public string? Bio { get; set; }
+
+        public class ProfileUserDto
+        {
+            public string? Bio { get; set; }
+            public string? ProfilePhotoUrl { get; set; }
+            public string ProgressVisibility { get; set; } = "private";
+            public string NotificationPrefs { get; set; } = "{}";
+        }
+
+        public ProfileUserDto? ProfileUser { get; set; }
+
     }
+
+
 }

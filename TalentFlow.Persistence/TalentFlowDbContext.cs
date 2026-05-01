@@ -45,6 +45,7 @@ namespace TalentFlow.Persistence
         public DbSet<LearningWork> LearningWorks { get; set; } = null!;
 
         public DbSet<LessonProgress> LessonProgresses { get; set; } = null!;
+        public DbSet<ProfileUser> ProfileUsers { get; set; } = null!;
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -79,6 +80,12 @@ namespace TalentFlow.Persistence
                 entity.HasKey(o => o.Id);
                 entity.Property(o => o.Code).IsRequired().HasMaxLength(6);
             });
+
+            modelBuilder.Entity<User>()
+                .HasOne(u => u.ProfileUser)
+                .WithOne(p => p.User)
+                .HasForeignKey<ProfileUser>(p => p.UserId);
+
 
             // Ignore navigation property in Assessment
             modelBuilder.Entity<Assessment>().Ignore(a => a.Questions);

@@ -5,7 +5,7 @@ using TalentFlow.Domain.Events;
 
 namespace TalentFlow.Domain.Entities
 {
-    [Table("userss")]
+    [Table("users")]
     public class User : EntityBase
     {
         public Guid Id { get; private set; }
@@ -40,6 +40,13 @@ namespace TalentFlow.Domain.Entities
         public string? DeletedBy { get; private set; }
         public DateTime? DeletedAt { get; private set; }
         public bool EmailNotifications { get; set; }
+        public void AttachProfile(ProfileUser profile)
+        {
+            ProfileUser = profile;
+        }
+
+        public ProfileUser? ProfileUser { get; private set; }
+
 
         private User() { } // EF Core
 
