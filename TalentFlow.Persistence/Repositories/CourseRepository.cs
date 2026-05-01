@@ -56,7 +56,7 @@ namespace TalentFlow.Persistence.Repositories
         {
             if (course == null) throw new ArgumentNullException(nameof(course));
             await _context.Courses.AddAsync(course, ct);
-            await _context.SaveChangesAsync(ct);
+            
         }
 
         public async Task UpdateAsync(Course course, CancellationToken ct = default)
