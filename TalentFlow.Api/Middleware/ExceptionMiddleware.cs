@@ -47,6 +47,18 @@ namespace TalentFlow.API.Middleware
                         errors = new { Email = new[] { $"The email '{dupEx.Email}' is already in use." } }
                     };
                 }
+                else if (ex is NotFoundException nfEx)
+                {
+                    statusCode = (int)HttpStatusCode.NotFound;
+                    payload = new
+                    {
+                        success = false,
+                        data = (object?)null,
+                        message = nfEx.Message,
+                        statusCode,
+                        errors = new { Resource = new[] { nfEx.Message } }
+                    };
+                }
                 else if (ex is ArgumentException || ex is InvalidOperationException)
                 {
                     statusCode = (int)HttpStatusCode.BadRequest;
@@ -74,8 +86,8 @@ namespace TalentFlow.API.Middleware
 
                 context.Response.StatusCode = statusCode;
 
-                // Include exception detail only in Development
                 var options = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
+
                 if (_env.IsDevelopment())
                 {
                     var dict = JsonSerializer.Deserialize<Dictionary<string, object>>(JsonSerializer.Serialize(payload, options), options)
