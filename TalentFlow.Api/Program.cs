@@ -141,7 +141,7 @@ builder.Services.AddScoped<IProgressRepository, ProgressRepository>();
 builder.Services.AddScoped<ILearningWorkRepository, LearningWorkRepository>();
 
 // ============================
-// MESSAGING
+// MESSAGING RABBITMQ
 // ============================
 var cloudAmqpUrl = Environment.GetEnvironmentVariable("CLOUDAMQP_URL")
                   ?? builder.Configuration["CLOUDAMQP_URL"];
