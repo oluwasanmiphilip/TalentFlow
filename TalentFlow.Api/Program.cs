@@ -1,3 +1,4 @@
+
 // File: src/TalentFlow.Api/Program.cs
 
 using Asp.Versioning;
@@ -7,6 +8,7 @@ using Microsoft.AspNetCore.Http.Features;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
+using RabbitMQ.Client;
 using Serilog;
 using System.Text;
 using TalentFlow.API.Middleware;
@@ -20,6 +22,7 @@ using TalentFlow.Application.LeanersProgress.Repositories;
 using TalentFlow.Application.Otp.Handlers;
 using TalentFlow.Application.Users.Commands;
 using TalentFlow.Infrastructure.Auth;
+using TalentFlow.Infrastructure.Configuration;
 using TalentFlow.Infrastructure.Email;
 using TalentFlow.Infrastructure.Events;
 using TalentFlow.Infrastructure.Messaging;
@@ -27,9 +30,9 @@ using TalentFlow.Infrastructure.Notifications;
 using TalentFlow.Infrastructure.Security;
 using TalentFlow.Infrastructure.Services;
 using TalentFlow.Infrastructure.Sms;
-using TalentFlow.Infrastructure.Configuration;
 using TalentFlow.Persistence;
 using TalentFlow.Persistence.Repositories;
+using TalentFlow.Workers;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -64,8 +67,6 @@ builder.Services.AddHttpClient();
 // ============================
 builder.Services.AddScoped<DomainEventDispatcher>();
 
-
-
 // ============================
 // REPOSITORIES
 // ============================
@@ -84,6 +85,8 @@ builder.Services.AddScoped<IVideoRepository, VideoRepository>();
 builder.Services.AddScoped<ICertificateRepository, CertificateRepository>();
 builder.Services.AddScoped<IOtpRepository, OtpRepository>();
 builder.Services.AddScoped<ISubmissionRepository, SubmissionRepository>();
+builder.Services.AddSingleton<OtpConsumer>();
+builder.Services.AddHostedService<OtpWorker>();
 
 // ============================
 // FILE STORAGE
@@ -118,13 +121,14 @@ builder.Services.AddTransient<IEmailService>(sp =>
 builder.Services.AddTransient<ISmsService>(sp =>
 {
     var settings = sp.GetRequiredService<IOptions<SmtpSettings>>().Value;
-    return new SmtpSmsService(settings);
+    var logger = sp.GetRequiredService<ILogger<SmtpSmsService>>();
+    return new SmtpSmsService(settings, logger);
 });
 
 // ============================
 // SERVICES
 // ============================
-builder.Services.AddScoped<IEventStreamPublisher, EventStreamPublisher>();
+builder.Services.AddScoped<IEventStreamPublisher, RabbitMqEventStreamPublisher>();
 builder.Services.AddScoped<IPasswordHasher, PasswordHasher>();
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
@@ -133,28 +137,36 @@ builder.Services.AddScoped<TokenService>();
 builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
 builder.Services.AddScoped<ICourseProgressRepository, CourseProgressRepository>();
 builder.Services.AddScoped<ILeanersProgressRepository, LessonProgressRepository>();
-
 builder.Services.AddScoped<IProgressRepository, ProgressRepository>();
-//builder.Services.AddScoped<ILessonRepository, LessonRepository>();
 builder.Services.AddScoped<ILearningWorkRepository, LearningWorkRepository>();
 
 // ============================
-// MESSAGING
+// MESSAGING RABBITMQ
 // ============================
-var rabbitSection = builder.Configuration.GetSection("RabbitMQ:Production");
+var cloudAmqpUrl = Environment.GetEnvironmentVariable("CLOUDAMQP_URL")
+                  ?? builder.Configuration["CLOUDAMQP_URL"];
 
-var rabbitHost = rabbitSection["Host"] ?? "localhost";
-var rabbitUser = rabbitSection["UserName"] ?? "guest";
-var rabbitPass = rabbitSection["Password"] ?? "guest";
-var rabbitPort = int.TryParse(rabbitSection["Port"], out var rp) ? rp : 5672;
+Console.WriteLine($"CLOUDAMQP_URL = {cloudAmqpUrl}");
 
-builder.Services.AddSingleton<IMessageBus>(sp =>
-    new RabbitMqMessageBus(rabbitHost, rabbitPort, rabbitUser, rabbitPass));
+builder.Services.AddSingleton<IConnection>(sp =>
+{
+    if (string.IsNullOrWhiteSpace(cloudAmqpUrl))
+        throw new Exception("CLOUDAMQP_URL is missing");
+
+    var factory = new ConnectionFactory
+    {
+        Uri = new Uri(cloudAmqpUrl),
+        AutomaticRecoveryEnabled = true
+    };
+
+    return factory.CreateConnectionAsync().GetAwaiter().GetResult();
+});
 
 // ============================
 // NOTIFICATION
 // ============================
 builder.Services.AddScoped<INotificationService, NotificationService>();
+builder.Services.AddSingleton<IMessageBus, RabbitMqMessageBus>();
 
 // ============================
 // MEDIATR
@@ -170,9 +182,7 @@ builder.Services.AddMediatR(cfg =>
 // ============================
 // JWT AUTH
 // ============================
-
 var jwtSecret = builder.Configuration["Jwt:Production:Secret"] ?? "superlongjwtsecretkeytokenhiddenfor_dev";
-
 var key = Encoding.UTF8.GetBytes(jwtSecret);
 
 builder.Services.AddAuthentication(options =>
@@ -218,14 +228,13 @@ builder.Services.AddCors(options =>
 });
 
 // ============================
-// SWAGGER (✅ FIXED)
+// SWAGGER
 // ============================
 builder.Services.AddOpenApiDocument(config =>
 {
     config.Title = "TalentFlow API";
     config.Version = "v1";
 
-    // 🔐 ADD JWT SECURITY DEFINITION
     config.AddSecurity("JWT", new NSwag.OpenApiSecurityScheme
     {
         Type = NSwag.OpenApiSecuritySchemeType.Http,
@@ -236,7 +245,6 @@ builder.Services.AddOpenApiDocument(config =>
         Description = "Type: Bearer {your JWT token}"
     });
 
-    // 🔐 APPLY SECURITY TO ALL ENDPOINTS
     config.OperationProcessors.Add(
         new NSwag.Generation.Processors.Security.AspNetCoreOperationSecurityScopeProcessor("JWT")
     );
@@ -255,7 +263,6 @@ if (string.IsNullOrEmpty(connectionString))
 }
 else
 {
-    // Mask the password before logging
     var safeConnectionString = connectionString.Replace(
         $"Password={builder.Configuration["ConnectionStrings:Production"]?.Split("Password=")[1]?.Split(';')[0]}",
         "Password=****"
@@ -273,30 +280,17 @@ builder.Services.AddDbContext<TalentFlowDbContext>((serviceProvider, options) =>
     options.UseApplicationServiceProvider(serviceProvider);
 });
 
-
-
 // ============================
 // BUILD APP
 // ============================
 var app = builder.Build();
-
-
-
-//// AUTOMATIC MIGRATION
-//using (var scope = app.Services.CreateScope())
-//{
-//    var db = scope.ServiceProvider.GetRequiredService<TalentFlowDbContext>();
-//    db.Database.Migrate();
-//}
 
 app.UseMiddleware<ExceptionMiddleware>();
 app.UseMiddleware<AuthMiddleware>();
 
 app.UseCors("AllowFrontend");
 
-// ✅ FIXED Swagger config
 app.UseOpenApi();
-
 app.UseSwaggerUi(settings =>
 {
     settings.Path = "/swagger";
@@ -304,14 +298,11 @@ app.UseSwaggerUi(settings =>
 });
 
 app.UseRouting();
-
 app.UseAuthentication();
 app.UseAuthorization();
-
 app.UseStaticFiles();
 
 app.MapControllers();
-
 app.MapGet("/", () => Results.Ok("TalentFlow API Running"));
 app.MapGet("/health", () => Results.Ok("Healthy"));
 

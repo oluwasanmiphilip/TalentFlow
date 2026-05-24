@@ -1,4 +1,7 @@
 <Solution>
+  <Folder Name="/Solution Items/">
+    <File Path="Docker-compose.yml" />
+  </Folder>
   <Project Path="TalentFlow.Api/TalentFlow.Api.csproj" />
   <Project Path="TalentFlow.Application/TalentFlow.Application.csproj" />
   <Project Path="TalentFlow.Domain/TalentFlow.Domain.csproj" />
@@ -6,4 +9,5 @@
   <Project Path="TalentFlow.Persistence/TalentFlow.Persistence.csproj" />
   <Project Path="TalentFlow.Shared/TalentFlow.Shared.csproj" />
   <Project Path="TalentFlow.Test/TalentFlow.Test.csproj" Id="c2a0a8b2-0b88-4aca-a67e-cd4b5782ed7d" />
+  <Project Path="TalentFlow.Workers/TalentFlow.Workers.csproj" Id="8878736d-eb12-423c-b782-af0c6718dbcd" />
 </Solution>

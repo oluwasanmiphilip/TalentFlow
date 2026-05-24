@@ -2,31 +2,31 @@
 using System.Net.Mail;
 using TalentFlow.Application.Common.Interfaces;
 using TalentFlow.Infrastructure.Email;
+using Microsoft.Extensions.Logging;
 
 namespace TalentFlow.Infrastructure.Sms
 {
     public class SmtpSmsService : ISmsService
     {
         private readonly SmtpSettings _settings;
+        private readonly ILogger<SmtpSmsService> _logger;
 
-        public SmtpSmsService(SmtpSettings settings)
+        public SmtpSmsService(SmtpSettings settings, ILogger<SmtpSmsService> logger)
         {
             _settings = settings;
+            _logger = logger;
         }
 
-        // ✅ Implement SendOtpAsync
         public async Task SendOtpAsync(string phoneNumber, string otpCode)
         {
             await SendInternalAsync(phoneNumber, $"Your OTP code is: {otpCode}");
         }
 
-        // ✅ Implement SendAsync (generic SMS)
         public async Task SendAsync(string phoneNumber, string message)
         {
             await SendInternalAsync(phoneNumber, message);
         }
 
-        // 🔄 Shared retry logic
         private async Task SendInternalAsync(string phoneNumber, string message)
         {
             int retryCount = 0;
@@ -50,19 +50,24 @@ namespace TalentFlow.Infrastructure.Sms
                         IsBodyHtml = false
                     };
 
-                    // ⚠️ Replace with a real SMS gateway domain (e.g., Termii/Twilio integration)
+                    // ⚠️ Replace with a real SMS gateway domain
                     mail.To.Add($"{phoneNumber}@sms-gateway.example.com");
 
+                    _logger.LogInformation("Attempting to send SMS to {Phone}", phoneNumber);
                     await client.SendMailAsync(mail);
+                    _logger.LogInformation("SMS sent successfully to {Phone}", phoneNumber);
                     break; // ✅ success
                 }
                 catch (Exception ex)
                 {
                     retryCount++;
+                    _logger.LogError(ex, "Failed to send SMS (attempt {Attempt})", retryCount);
 
                     if (retryCount >= maxRetries)
                     {
-                        throw new Exception($"Failed to send SMS after {maxRetries} attempts. Last error: {ex.Message}");
+                        // ✅ Fail gracefully: log and exit without crashing registration
+                        _logger.LogCritical("SMS sending failed after {MaxRetries} attempts. Giving up.", maxRetries);
+                        return; // don’t throw, just return
                     }
 
                     // 🔄 exponential backoff

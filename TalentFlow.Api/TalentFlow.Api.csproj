@@ -39,6 +39,7 @@
     <ProjectReference Include="..\TalentFlow.Domain\TalentFlow.Domain.csproj" />
     <ProjectReference Include="..\TalentFlow.Infrastructure\TalentFlow.Infrastructure.csproj" />
     <ProjectReference Include="..\TalentFlow.Persistence\TalentFlow.Persistence.csproj" />
+    <ProjectReference Include="..\TalentFlow.Workers\TalentFlow.Workers.csproj" />
   </ItemGroup>
 
 </Project>

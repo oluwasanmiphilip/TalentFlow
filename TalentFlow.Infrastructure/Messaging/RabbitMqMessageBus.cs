@@ -1,59 +1,46 @@
-﻿using System;
+﻿using RabbitMQ.Client;
 using System.Text;
 using System.Text.Json;
-using System.Threading.Tasks;
-using RabbitMQ.Client;
 using TalentFlow.Application.Common.Interfaces;
 
 namespace TalentFlow.Infrastructure.Messaging
 {
-    public class RabbitMqMessageBus : IMessageBus, IDisposable
+    public class RabbitMqMessageBus : IMessageBus
     {
         private readonly IConnection _connection;
 
-        public RabbitMqMessageBus(string host, int port, string user, string pass)
+        public RabbitMqMessageBus(IConnection connection)
         {
-            var factory = new ConnectionFactory
-            {
-                HostName = host,
-                Port = port,
-                UserName = user,
-                Password = pass
-            };
-            // RabbitMQ client only supports synchronous connection creation
-            _connection = factory.CreateConnection();
+            _connection = connection;
         }
 
-        public Task PublishAsync<T>(T message) where T : class
+        public async Task PublishAsync<T>(T message)
+            where T : class
         {
-            using var channel = _connection.CreateModel();
+            await using var channel =
+                await _connection.CreateChannelAsync();
 
-            channel.QueueDeclare(
+            await channel.QueueDeclareAsync(
                 queue: typeof(T).Name,
                 durable: true,
                 exclusive: false,
-                autoDelete: false,
-                arguments: null
-            );
+                autoDelete: false);
 
-            var body = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(message));
+            var body = Encoding.UTF8.GetBytes(
+                JsonSerializer.Serialize(message));
 
-            var properties = channel.CreateBasicProperties();
-            properties.Persistent = true; // ensure message survives broker restart
+            var properties = new BasicProperties
+            {
+                Persistent = true,
+                ContentType = "application/json"
+            };
 
-            channel.BasicPublish(
+            await channel.BasicPublishAsync(
                 exchange: "",
                 routingKey: typeof(T).Name,
+                mandatory: false,
                 basicProperties: properties,
-                body: body
-            );
-
-            return Task.CompletedTask;
-        }
-
-        public void Dispose()
-        {
-            _connection?.Dispose();
+                body: body);
         }
     }
 }
