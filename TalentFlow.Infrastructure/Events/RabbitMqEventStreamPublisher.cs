@@ -9,35 +9,49 @@ namespace TalentFlow.Infrastructure.Events
     {
         private readonly IConnection _connection;
 
-        public RabbitMqEventStreamPublisher(string hostName)
+        public RabbitMqEventStreamPublisher(IConnection connection)
         {
-            var factory = new ConnectionFactory { HostName = hostName };
-            _connection = factory.CreateConnection(); // ✅ synchronous
+            _connection = connection;
         }
 
-        public Task PublishAsync(string eventName, object payload, CancellationToken cancellationToken = default)
+        public async Task PublishAsync(
+    string eventName,
+    object payload,
+    CancellationToken cancellationToken = default)
         {
-            using var channel = _connection.CreateModel(); // ✅ synchronous
+            await using var channel =
+                await _connection.CreateChannelAsync(
+                    cancellationToken: cancellationToken);
 
-            channel.QueueDeclare(
+            await channel.QueueDeclareAsync(
                 queue: "notifications",
-                durable: false,
+                durable: true,
                 exclusive: false,
                 autoDelete: false,
-                arguments: null
-            );
+                arguments: null,
+                cancellationToken: cancellationToken);
 
-            var message = JsonSerializer.Serialize(new { Event = eventName, Payload = payload });
-            var body = Encoding.UTF8.GetBytes(message);
+            var message = JsonSerializer.Serialize(new
+            {
+                Event = eventName,
+                Payload = payload
+            });
 
-            channel.BasicPublish(
+            var body = Encoding.UTF8.GetBytes(message); // ✅ FIX HERE
+
+            var properties = new BasicProperties
+            {
+                Persistent = true,
+                ContentType = "application/json"
+            };
+
+            await channel.BasicPublishAsync(
                 exchange: "",
                 routingKey: "notifications",
-                basicProperties: null,
-                body: body
-            );
-
-            return Task.CompletedTask;
+                mandatory: false,
+                basicProperties: properties,
+                body: body,
+                cancellationToken: cancellationToken);
         }
     }
 }

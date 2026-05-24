@@ -11,6 +11,7 @@ using TalentFlow.Application.Common.Exceptions;
 using TalentFlow.Application.Common.Interfaces;
 using TalentFlow.Application.Common.Models;
 using TalentFlow.Application.Otp.Commands;
+using TalentFlow.Application.Common.Messages;
 using TalentFlow.Application.Users.Commands;
 using TalentFlow.Infrastructure.Services; // ImageProcessingHelper
 
@@ -46,18 +47,22 @@ namespace TalentFlow.Api.Controllers
         private readonly IJwtTokenService _tokenService;
         private readonly IFileStorageService _fileStorage;
         private readonly IUserRepository _userRepository;
+        private readonly IMessageBus _messageBus; // ✅ add this
 
         public AuthController(
             IMediator mediator,
             IJwtTokenService tokenService,
             IFileStorageService fileStorage,
-            IUserRepository userRepository)
+            IUserRepository userRepository,
+            IMessageBus messageBus) // ✅ inject here
         {
             _mediator = mediator;
             _tokenService = tokenService;
             _fileStorage = fileStorage;
             _userRepository = userRepository;
+            _messageBus = messageBus; // ✅ assign here
         }
+
 
         // ============================
         // REGISTER
@@ -153,7 +158,16 @@ namespace TalentFlow.Api.Controllers
                 var shouldSendEmail = command.EmailNotifications ?? true;
                 if (shouldSendEmail)
                 {
-                    await _mediator.Send(new GenerateOtpCommand { UserId = userDto.Id, Channel = "email" }, HttpContext.RequestAborted);
+                    // NEW
+                    await _messageBus.PublishAsync(new OtpMessage
+                    {
+                        UserId = userDto.Id,
+                        Email = userDto.Email,
+                        PhoneNumber = userDto.PhoneNumber,
+                        Channel = "email",
+                        Code = Guid.NewGuid().ToString().Substring(0, 6), // generate OTP code
+                        ExpiresAt = DateTime.UtcNow.AddMinutes(5)
+                    });
                 }
 
                 var responsePayload = new
