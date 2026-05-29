@@ -23,11 +23,12 @@ using TalentFlow.Application.Users.Commands;
 using TalentFlow.Infrastructure.Auth;
 using TalentFlow.Infrastructure.Configuration;
 using TalentFlow.Infrastructure.Email;
+using TalentFlow.Infrastructure.Jobs;
+using TalentFlow.Infrastructure.Messaging;
 using TalentFlow.Infrastructure.Notifications;
 using TalentFlow.Infrastructure.Security;
 using TalentFlow.Infrastructure.Services;
 using TalentFlow.Infrastructure.Sms;
-using TalentFlow.Infrastructure.Jobs;
 using TalentFlow.Persistence;
 using TalentFlow.Persistence.Repositories;
 
@@ -77,6 +78,11 @@ builder.Services.AddScoped<IVideoRepository, VideoRepository>();
 builder.Services.AddScoped<ICertificateRepository, CertificateRepository>();
 builder.Services.AddScoped<IOtpRepository, OtpRepository>();
 builder.Services.AddScoped<ISubmissionRepository, SubmissionRepository>();
+builder.Services.AddScoped<ILearningWorkRepository, LearningWorkRepository>();
+builder.Services.AddScoped<IProgressRepository, ProgressRepository>();
+builder.Services.AddScoped<ICourseProgressRepository, CourseProgressRepository>();
+builder.Services.AddScoped<IEventStreamPublisher, NullEventStreamPublisher>();
+
 
 // ============================
 // JOBS
