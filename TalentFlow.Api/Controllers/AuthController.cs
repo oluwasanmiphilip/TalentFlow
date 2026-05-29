@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Linq;
 using System.Threading.Tasks;
+using TalentFlow.Api.Controllers.Requests;
 using TalentFlow.Application.Common.Exceptions;
 using TalentFlow.Application.Common.Interfaces;
 using TalentFlow.Application.Common.Messages;
@@ -238,24 +239,34 @@ namespace TalentFlow.Api.Controllers
         // ============================
         [AllowAnonymous]
         [HttpPost("verify-otp")]
-        public async Task<IActionResult> VerifyOtp([FromBody] ValidateOtpCommand command)
+        public async Task<IActionResult> VerifyOtp([FromBody] VerifyOtpRequest request)
         {
-            var userDto = await _mediator.Send(command);
+            var userDto = await _mediator.Send(new ValidateOtpCommand
+            {
+                UserId = request.UserId,
+                Code = request.Code
+            });
 
             if (userDto == null)
-                return BadRequest(ApiResponse.Fail<string>("Invalid OTP", 400));
+                return BadRequest(ApiResponse.Fail<string>("Invalid or expired OTP", 400));
 
-            var accessToken =
-                _tokenService.GenerateToken(userDto.Id, userDto.Email, userDto.Role);
+            var accessToken = _tokenService.GenerateToken(
+                userDto.Id,
+                userDto.Email,
+                userDto.Role
+            );
 
-            var refreshToken =
-                _tokenService.GenerateRefreshToken(userDto.Id, userDto.Email, userDto.Role);
+            var refreshToken = _tokenService.GenerateRefreshToken(
+                userDto.Id,
+                userDto.Email,
+                userDto.Role
+            );
 
             return Ok(ApiResponse.Success(new
             {
                 accessToken,
                 refreshToken
-            }, "OTP verified"));
+            }, "OTP verified successfully"));
         }
 
         // ============================
@@ -263,10 +274,12 @@ namespace TalentFlow.Api.Controllers
         // ============================
         [AllowAnonymous]
         [HttpPost("resend-otp")]
-        public async Task<IActionResult> ResendOtp([FromBody] Guid userId)
+        public async Task<IActionResult> ResendOtp([FromBody] ResendOtpRequest request)
         {
-            var userDto =
-                await _mediator.Send(new GetUserByIdCommand { UserId = userId });
+            var userDto = await _mediator.Send(new GetUserByIdCommand
+            {
+                UserId = request.UserId
+            });
 
             if (userDto == null)
                 return NotFound(ApiResponse.Fail<string>("User not found", 404));
@@ -277,7 +290,7 @@ namespace TalentFlow.Api.Controllers
                 Channel = "email"
             });
 
-            return Ok(ApiResponse.Success("OTP resent"));
+            return Ok(ApiResponse.Success<string>("New OTP sent to your email."));
         }
 
         // ============================
