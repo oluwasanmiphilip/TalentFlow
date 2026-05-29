@@ -14,6 +14,9 @@
     <PackageReference Include="Asp.Versioning.Mvc" Version="10.0.0-preview.2" />
     <PackageReference Include="DotNetEnv" Version="3.1.1" />
     <PackageReference Include="FluentValidation" Version="12.1.1" />
+    <PackageReference Include="Hangfire" Version="1.8.23" />
+    <PackageReference Include="Hangfire.AspNetCore" Version="1.8.23" />
+    <PackageReference Include="Hangfire.Redis.StackExchange" Version="1.12.0" />
    
     <PackageReference Include="MediatR" Version="14.1.0" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.5" />
@@ -32,6 +35,7 @@
     <PackageReference Include="Serilog.Sinks.Console" Version="6.1.1" />
     <PackageReference Include="Serilog.Sinks.File" Version="7.0.0" />
     <PackageReference Include="ServiceStack.Text" Version="10.0.6" />
+    <PackageReference Include="StackExchange.Redis" Version="2.13.17" />
   </ItemGroup>
 
   <ItemGroup>
@@ -39,7 +43,6 @@
     <ProjectReference Include="..\TalentFlow.Domain\TalentFlow.Domain.csproj" />
     <ProjectReference Include="..\TalentFlow.Infrastructure\TalentFlow.Infrastructure.csproj" />
     <ProjectReference Include="..\TalentFlow.Persistence\TalentFlow.Persistence.csproj" />
-    <ProjectReference Include="..\TalentFlow.Workers\TalentFlow.Workers.csproj" />
   </ItemGroup>
 
 </Project>

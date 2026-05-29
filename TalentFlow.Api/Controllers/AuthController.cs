@@ -1,5 +1,6 @@
 ﻿// File Path: src/TalentFlow.Api/Controllers/AuthController.cs
 
+using Hangfire;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -9,10 +10,11 @@ using System.Linq;
 using System.Threading.Tasks;
 using TalentFlow.Application.Common.Exceptions;
 using TalentFlow.Application.Common.Interfaces;
+using TalentFlow.Application.Common.Messages;
 using TalentFlow.Application.Common.Models;
 using TalentFlow.Application.Otp.Commands;
-using TalentFlow.Application.Common.Messages;
 using TalentFlow.Application.Users.Commands;
+using TalentFlow.Infrastructure.Jobs;
 using TalentFlow.Infrastructure.Services; // ImageProcessingHelper
 
 namespace TalentFlow.Api.Controllers
@@ -47,7 +49,7 @@ namespace TalentFlow.Api.Controllers
         private readonly IJwtTokenService _tokenService;
         private readonly IFileStorageService _fileStorage;
         private readonly IUserRepository _userRepository;
-        private readonly IMessageBus _messageBus; // ✅ add this
+        //private readonly IMessageBus _messageBus; // ✅ add this
 
         public AuthController(
             IMediator mediator,
@@ -60,7 +62,7 @@ namespace TalentFlow.Api.Controllers
             _tokenService = tokenService;
             _fileStorage = fileStorage;
             _userRepository = userRepository;
-            _messageBus = messageBus; // ✅ assign here
+            //_messageBus = messageBus; // ✅ assign here
         }
 
 
@@ -159,15 +161,19 @@ namespace TalentFlow.Api.Controllers
                 if (shouldSendEmail)
                 {
                     // NEW
-                    await _messageBus.PublishAsync(new OtpMessage
+                    var otpMessage = new OtpMessage
                     {
                         UserId = userDto.Id,
                         Email = userDto.Email,
                         PhoneNumber = userDto.PhoneNumber,
                         Channel = "email",
-                        Code = Guid.NewGuid().ToString().Substring(0, 6), // generate OTP code
+                        Code = Guid.NewGuid().ToString().Substring(0, 6),
                         ExpiresAt = DateTime.UtcNow.AddMinutes(5)
-                    });
+                    };
+
+                    BackgroundJob.Enqueue<OtpJobService>(
+                        job => job.SendOtpAsync(otpMessage)
+                    );
                 }
 
                 var responsePayload = new
