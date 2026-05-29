@@ -1,7 +1,4 @@
 <Solution>
-  <Folder Name="/Solution Items/">
-    <File Path="Docker-compose.yml" />
-  </Folder>
   <Project Path="TalentFlow.Api/TalentFlow.Api.csproj" />
   <Project Path="TalentFlow.Application/TalentFlow.Application.csproj" />
   <Project Path="TalentFlow.Domain/TalentFlow.Domain.csproj" />
