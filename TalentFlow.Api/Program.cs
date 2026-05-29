@@ -153,23 +153,13 @@ builder.Services.AddScoped<ILearningWorkRepository, LearningWorkRepository>();
 builder.Services.AddSingleton<IEventStreamPublisher, NullEventStreamPublisher>();
 
 // ============================
-// HANGFIRE + REDIS (SAFE)
+// HANGFIRE
 // ============================
-var redisUrl = Environment.GetEnvironmentVariable("REDIS_URL");
 
-if (!string.IsNullOrWhiteSpace(redisUrl))
+builder.Services.AddHangfire(config =>
 {
-    builder.Services.AddHangfire(config =>
-    {
-        config.UseRedisStorage(redisUrl);
-    });
-
-    builder.Services.AddHangfireServer();
-}
-else
-{
-    Console.WriteLine("⚠️ Hangfire disabled (no Redis configured)");
-}
+    config.UseMemoryStorage();
+});
 
 builder.Services.AddHangfireServer();
 
@@ -299,6 +289,9 @@ builder.Services.AddDbContext<TalentFlowDbContext>((sp, options) =>
 
     options.UseApplicationServiceProvider(sp);
 });
+
+
+
 
 // ============================
 // BUILD APP
