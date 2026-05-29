@@ -46,6 +46,7 @@ namespace TalentFlow.Persistence
 
         public DbSet<LessonProgress> LessonProgresses { get; set; } = null!;
         public DbSet<ProfileUser> ProfileUsers { get; set; } = null!;
+        public DbSet<OtpVerification> OtpVerifications { get; set; } 
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
