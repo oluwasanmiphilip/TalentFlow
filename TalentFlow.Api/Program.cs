@@ -105,6 +105,12 @@ builder.Services.Configure<FormOptions>(options =>
 // ============================
 // SMTP
 // ============================
+//builder.Services.AddMediatR(cfg =>
+//    cfg.RegisterServicesFromAssembly(typeof(TalentFlow.Application.DependencyInjection).Assembly));
+
+// ============================
+// SMTP
+// ============================
 builder.Services.Configure<SmtpSettings>(options =>
 {
     options.Server = builder.Configuration["SMTP_SERVER"] ?? "localhost";
