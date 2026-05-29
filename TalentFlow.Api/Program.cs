@@ -15,6 +15,7 @@ using Serilog;
 using StackExchange.Redis;
 using System.Text;
 using TalentFlow.Infrastructure.Jobs;
+using TalentFlow.Infrastructure.Messaging;
 using TalentFlow.API.Middleware;
 using TalentFlow.Application.Common.Interfaces;
 using TalentFlow.Application.Common.Services;
@@ -86,6 +87,7 @@ builder.Services.AddScoped<ICertificateRepository, CertificateRepository>();
 builder.Services.AddScoped<IOtpRepository, OtpRepository>();
 builder.Services.AddScoped<ISubmissionRepository, SubmissionRepository>();
 
+
 builder.Services.AddScoped<OtpJobService>();
 
 // ============================
@@ -128,9 +130,10 @@ builder.Services.AddTransient<IEmailService>(sp =>
 // ============================
 builder.Services.AddTransient<ISmsService>(sp =>
 {
-    var settings = sp.GetRequiredService<IOptions<SmtpSettings>>().Value;
-    var logger = sp.GetRequiredService<ILogger<SmtpSmsService>>();
-    return new SmtpSmsService(settings, logger);
+    var logger =
+        sp.GetRequiredService<ILogger<SmtpSmsService>>();
+
+    return new SmtpSmsService(logger);
 });
 
 // ============================

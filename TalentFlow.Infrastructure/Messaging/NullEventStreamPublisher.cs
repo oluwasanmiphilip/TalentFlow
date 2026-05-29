@@ -1,10 +1,18 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using TalentFlow.Application.Common.Interfaces;
 
 namespace TalentFlow.Infrastructure.Messaging
 {
-    internal class NullEventStreamPublisher
+    public class NullEventStreamPublisher : IEventStreamPublisher
     {
+        public Task PublishAsync(
+            string eventName,
+            object payload,
+            CancellationToken cancellationToken = default)
+        {
+            Console.WriteLine(
+                $"⚠️ Event ignored: {eventName}");
+
+            return Task.CompletedTask;
+        }
     }
 }
