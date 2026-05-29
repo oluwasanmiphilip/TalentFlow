@@ -1,57 +1,27 @@
 ﻿using Microsoft.Extensions.Logging;
 using TalentFlow.Application.Common.Interfaces;
+using TalentFlow.Infrastructure.Email;
 
-namespace TalentFlow.Infrastructure.Sms
+public class SmtpSmsService : ISmsService
 {
-    public class SmtpSmsService : ISmsService
+    private readonly SmtpSettings _settings;
+    private readonly ILogger<SmtpSmsService> _logger;
+
+    public SmtpSmsService(SmtpSettings settings, ILogger<SmtpSmsService> logger)
     {
-        private readonly ILogger<SmtpSmsService> _logger;
+        _settings = settings;
+        _logger = logger;
+    }
 
-        public SmtpSmsService(ILogger<SmtpSmsService> logger)
-        {
-            _logger = logger;
-        }
+    public async Task SendOtpAsync(string phoneNumber, string otpCode)
+    {
+        await SendAsync(phoneNumber, $"Your OTP code is: {otpCode}");
+    }
 
-        public Task SendOtpAsync(string phoneNumber, string otpCode)
-        {
-            return SendAsync(phoneNumber, $"Your OTP code is: {otpCode}");
-        }
-
-        public async Task SendAsync(string phoneNumber, string message)
-        {
-            const int maxRetries = 3;
-            int retry = 0;
-
-            while (retry < maxRetries)
-            {
-                try
-                {
-                    // ✅ TEMP IMPLEMENTATION (safe for Render)
-                    // Replace later with Termii / Twilio / Africa's Talking
-
-                    _logger.LogInformation(
-                        "SMS to {Phone}: {Message}",
-                        phoneNumber,
-                        message
-                    );
-
-                    await Task.CompletedTask;
-                    return;
-                }
-                catch (Exception ex)
-                {
-                    retry++;
-                    _logger.LogError(ex,
-                        "SMS failed attempt {Attempt}",
-                        retry);
-
-                    await Task.Delay(500 * retry);
-                }
-            }
-
-            _logger.LogCritical(
-                "SMS failed permanently for {Phone}",
-                phoneNumber);
-        }
+    public async Task SendAsync(string phoneNumber, string message)
+    {
+        // your existing logic here
+        _logger.LogInformation("Sending SMS to {Phone}", phoneNumber);
+        await Task.CompletedTask;
     }
 }
