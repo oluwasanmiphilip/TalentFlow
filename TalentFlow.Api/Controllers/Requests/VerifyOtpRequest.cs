@@ -1,10 +1,8 @@
-﻿using System;
-
-namespace TalentFlow.Api.Controllers.Requests
+﻿namespace TalentFlow.Api.Controllers.Requests
 {
     public class VerifyOtpRequest
     {
-        public Guid UserId { get; set; }
-        public string Code { get; set; }
+        public string Email { get; set; } = string.Empty;
+        public string Code { get; set; } = string.Empty;
     }
 }

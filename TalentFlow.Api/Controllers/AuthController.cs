@@ -241,13 +241,23 @@ namespace TalentFlow.Api.Controllers
         [HttpPost("verify-otp")]
         public async Task<IActionResult> VerifyOtp([FromBody] VerifyOtpRequest request)
         {
-            var userDto = await _mediator.Send(new ValidateOtpCommand
+            var email = request.Email.Trim().ToLowerInvariant();
+
+            var userDto = await _mediator.Send(new GetUserByEmailCommand
             {
-                UserId = request.UserId,
-                Code = request.Code
+                Email = email
             });
 
             if (userDto == null)
+                return BadRequest(ApiResponse.Fail<string>("User not found", 400));
+
+            var result = await _mediator.Send(new ValidateOtpCommand
+            {
+                UserId = userDto.Id,
+                Code = request.Code
+            });
+
+            if (result == null)
                 return BadRequest(ApiResponse.Fail<string>("Invalid or expired OTP", 400));
 
             var accessToken = _tokenService.GenerateToken(
@@ -276,9 +286,11 @@ namespace TalentFlow.Api.Controllers
         [HttpPost("resend-otp")]
         public async Task<IActionResult> ResendOtp([FromBody] ResendOtpRequest request)
         {
-            var userDto = await _mediator.Send(new GetUserByIdCommand
+            var email = request.Email.Trim().ToLowerInvariant();
+
+            var userDto = await _mediator.Send(new GetUserByEmailCommand
             {
-                UserId = request.UserId
+                Email = email
             });
 
             if (userDto == null)
