@@ -1,12 +1,14 @@
 ﻿// File Path: src/TalentFlow.Api/Controllers/OtpController.cs
 
-using System;
-using System.Threading.Tasks;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
+using System;
+using System.Threading.Tasks;
+using TalentFlow.Application.Common.Interfaces;
 using TalentFlow.Application.Common.Models;
 using TalentFlow.Application.Common.Services;
 using TalentFlow.Application.Otp.Commands;
+using TalentFlow.Application.Users.Commands;
 
 namespace TalentFlow.Api.Controllers
 {
@@ -15,61 +17,94 @@ namespace TalentFlow.Api.Controllers
     public class OtpController : ControllerBase
     {
         private readonly IMediator _mediator;
-        private readonly TokenService _tokenService;
+        private readonly IJwtTokenService _tokenService;
 
-        public OtpController(IMediator mediator, TokenService tokenService)
+        public OtpController(IMediator mediator, IJwtTokenService tokenService)
         {
             _mediator = mediator;
             _tokenService = tokenService;
         }
 
+        // ============================
+        // GENERATE OTP
+        // ============================
         [HttpPost("generate")]
-        public async Task<IActionResult> Generate([FromBody] Guid userId)
+        public async Task<IActionResult> Generate([FromBody] GenerateOtpRequest request)
         {
-            if (userId == Guid.Empty)
+            if (request == null || request.UserId == Guid.Empty)
                 return BadRequest(ApiResponse.Fail<string>("UserId is required", 400));
 
             var code = await _mediator.Send(new GenerateOtpCommand
             {
-                UserId = userId,
+                UserId = request.UserId,
                 Channel = "email"
             });
 
-            return Ok(ApiResponse.Success<string>(code, "OTP generated successfully"));
+            return Ok(ApiResponse.Success(code, "OTP generated successfully"));
         }
 
+        // ============================
+        // RESEND OTP
+        // ============================
         [HttpPost("resend")]
-        public async Task<IActionResult> Resend([FromBody] Guid userId)
+        public async Task<IActionResult> Resend([FromBody] GenerateOtpRequest request)
         {
-            if (userId == Guid.Empty)
+            if (request == null || request.UserId == Guid.Empty)
                 return BadRequest(ApiResponse.Fail<string>("UserId is required", 400));
 
             var code = await _mediator.Send(new GenerateOtpCommand
             {
-                UserId = userId,
+                UserId = request.UserId,
                 Channel = "email"
             });
 
-            return Ok(ApiResponse.Success<string>(code, "OTP resent successfully"));
+            return Ok(ApiResponse.Success(code, "OTP resent successfully"));
         }
 
+        // ============================
+        // VALIDATE OTP
+        // ============================
         [HttpPost("validate")]
         public async Task<IActionResult> Validate([FromBody] ValidateOtpCommand command)
         {
-            if (command == null || command.UserId == Guid.Empty || string.IsNullOrWhiteSpace(command.Code))
-                return BadRequest(ApiResponse.Fail<string>("UserId and OTP code are required", 400));
+            if (command == null ||
+                command.UserId == Guid.Empty ||
+                string.IsNullOrWhiteSpace(command.Code))
+            {
+                return BadRequest(ApiResponse.Fail<string>(
+                    "UserId and OTP code are required", 400));
+            }
 
-            var userDto = await _mediator.Send(command);
-            if (userDto == null)
+            var result = await _mediator.Send(command);
+
+            if (result == null)
                 return BadRequest(ApiResponse.Fail<string>("Invalid or expired OTP", 400));
 
-            var tokens = _tokenService.IssueTokens(userDto);
+            var accessToken = _tokenService.GenerateToken(
+                result.Id,
+                result.Email,
+                result.Role
+            );
 
-            return Ok(ApiResponse.Success<object>(new
+            var refreshToken = _tokenService.GenerateRefreshToken(
+                result.Id,
+                result.Email,
+                result.Role
+            );
+
+            return Ok(ApiResponse.Success(new
             {
-                accessToken = tokens.accessToken,
-                refreshToken = tokens.refreshToken
+                accessToken,
+                refreshToken
             }, "OTP verified successfully. Tokens issued."));
         }
+    }
+
+    // ============================
+    // REQUEST DTO (IMPORTANT FIX)
+    // ============================
+    public class GenerateOtpRequest
+    {
+        public Guid UserId { get; set; }
     }
 }
