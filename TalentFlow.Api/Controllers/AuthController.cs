@@ -288,21 +288,27 @@ namespace TalentFlow.Api.Controllers
         {
             var email = request.Email.Trim().ToLowerInvariant();
 
-            var userDto = await _mediator.Send(new GetUserByEmailCommand
+            var user = await _mediator.Send(new GetUserByEmailCommand
             {
                 Email = email
             });
 
-            if (userDto == null)
-                return NotFound(ApiResponse.Fail<string>("User not found", 404));
+            if (user == null)
+                return NotFound("User not found");
 
-            await _mediator.Send(new GenerateOtpCommand
-            {
-                UserId = userDto.Id,
-                Channel = "email"
-            });
+            BackgroundJob.Enqueue<OtpJobService>(job =>
+    job.SendOtpAsync(new OtpMessage
+    {
+        UserId = user.Id,
+        Email = user.Email,
+        PhoneNumber = user.PhoneNumber,
+        Channel = "email",
+        Code = Guid.NewGuid().ToString("N").Substring(0, 6),
+        ExpiresAt = DateTime.UtcNow.AddMinutes(5)
+    })
+);
 
-            return Ok(ApiResponse.Success<string>("New OTP sent to your email."));
+            return Ok("OTP is being sent");
         }
 
         // ============================

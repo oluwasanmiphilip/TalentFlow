@@ -9,6 +9,7 @@ using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using NSwag.Generation.Processors.Security;
 using Serilog;
+using StackExchange.Redis;
 using System.Text;
 using TalentFlow.API.Middleware;
 using TalentFlow.Application.Common.Interfaces;
@@ -20,8 +21,10 @@ using TalentFlow.Application.LeanersProgress.Commands;
 using TalentFlow.Application.LeanersProgress.Repositories;
 using TalentFlow.Application.Otp.Commands;
 using TalentFlow.Application.Otp.Handlers;
+using TalentFlow.Application.Otp.Services;
 using TalentFlow.Application.Users.Commands;
 using TalentFlow.Infrastructure.Auth;
+using TalentFlow.Infrastructure.Caching;
 using TalentFlow.Infrastructure.Configuration;
 using TalentFlow.Infrastructure.Email;
 using TalentFlow.Infrastructure.Jobs;
@@ -83,6 +86,11 @@ builder.Services.AddScoped<ILearningWorkRepository, LearningWorkRepository>();
 builder.Services.AddScoped<IProgressRepository, ProgressRepository>();
 builder.Services.AddScoped<ICourseProgressRepository, CourseProgressRepository>();
 builder.Services.AddScoped<IEventStreamPublisher, NullEventStreamPublisher>();
+
+
+builder.Services.AddScoped<IOtpCacheService, RedisOtpStore>();
+builder.Services.AddScoped<IOtpRateLimiter, OtpRateLimiter>();
+builder.Services.AddScoped<OtpService>();
 
 
 // ============================
@@ -157,6 +165,28 @@ builder.Services.AddHangfireServer();
 // NOTIFICATIONS
 // ============================
 builder.Services.AddScoped<INotificationService, NotificationService>();
+
+
+
+// ============================
+// REDIS
+// ============================
+
+var redisConnectionString = builder.Configuration["Redis:Connection"];
+
+if (string.IsNullOrWhiteSpace(redisConnectionString))
+    throw new ArgumentNullException("Redis connection string is missing");
+
+builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
+{
+    var options = ConfigurationOptions.Parse(redisConnectionString);
+
+    options.AbortOnConnectFail = false; // 🔥 IMPORTANT FOR CLOUD
+    options.Ssl = true;                 // 🔥 REQUIRED FOR UPSTASH
+    options.ConnectRetry = 5;
+
+    return ConnectionMultiplexer.Connect(options);
+});
 
 // ============================
 // MEDIATR

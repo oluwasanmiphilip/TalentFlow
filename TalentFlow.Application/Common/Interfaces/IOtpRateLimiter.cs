@@ -1,10 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace TalentFlow.Application.Common.Interfaces
+﻿namespace TalentFlow.Application.Common.Interfaces
 {
-    internal class IOtpRateLimiter
+    public interface IOtpRateLimiter
     {
+        Task<bool> CanSendAsync(Guid userId);
+        Task MarkSentAsync(Guid userId);
     }
 }

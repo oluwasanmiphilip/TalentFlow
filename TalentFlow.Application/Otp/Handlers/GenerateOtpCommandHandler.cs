@@ -1,85 +1,66 @@
 ﻿using MediatR;
-using TalentFlow.Application.Otp.Commands;
 using TalentFlow.Application.Common.Interfaces;
-using TalentFlow.Domain.Entities;
-using System.Security.Cryptography;
+using TalentFlow.Application.Otp.Commands;
 
-namespace TalentFlow.Application.Otp.Handlers
+public class GenerateOtpCommandHandler : IRequestHandler<GenerateOtpCommand, string>
 {
-    public class GenerateOtpCommandHandler : IRequestHandler<GenerateOtpCommand, string>
+    private readonly IUserRepository _userRepo;
+    private readonly IEmailService _emailService;
+    private readonly ISmsService _smsService;
+    private readonly IOtpCacheService _cache;
+    
+
+    public GenerateOtpCommandHandler(
+        IUserRepository userRepo,
+        IEmailService emailService,
+        ISmsService smsService,
+        IOtpCacheService cache)
     {
-        private readonly IOtpRepository _otpRepo;
-        private readonly IUserRepository _userRepo;
-        private readonly IEmailService _emailService;
-        private readonly ISmsService _smsService;
+        _userRepo = userRepo;
+        _emailService = emailService;
+        _smsService = smsService;
+        _cache = cache;
+        
+    }
 
-        public GenerateOtpCommandHandler(
-            IOtpRepository otpRepo,
-            IUserRepository userRepo,
-            IEmailService emailService,
-            ISmsService smsService)
+    public async Task<string> Handle(GenerateOtpCommand request, CancellationToken cancellationToken)
+    {
+        var user = await _userRepo.GetByIdAsync(request.UserId);
+        if (user == null)
+            throw new Exception("User not found");
+
+        if (string.IsNullOrWhiteSpace(user.Email) && string.IsNullOrWhiteSpace(user.PhoneNumber))
+            throw new Exception("User has no valid contact channel");
+
+        // 1. Generate OTP
+        var otp = new Random().Next(100000, 999999).ToString();
+
+        // 2. Store in Redis (TTL 5 mins)
+        await _cache.SaveOtpAsync(user.Id, otp, TimeSpan.FromMinutes(5));
+
+        // 3. Route by channel safely
+        var channel = request.Channel?.ToLowerInvariant();
+
+        switch (channel)
         {
-            _otpRepo = otpRepo;
-            _userRepo = userRepo;
-            _emailService = emailService;
-            _smsService = smsService;
-        }
+            case "email":
+                if (string.IsNullOrWhiteSpace(user.Email))
+                    throw new Exception("User email is missing");
 
-        public async Task<string> Handle(GenerateOtpCommand request, CancellationToken cancellationToken)
-        {
-            // 1. Get user
-            var user = await _userRepo.GetByIdAsync(request.UserId);
-            if (user == null)
-                throw new Exception("User not found");
+                await _emailService.SendOtpAsync(user.Email, otp);
+                break;
 
-            if (string.IsNullOrWhiteSpace(user.Email) && string.IsNullOrWhiteSpace(user.PhoneNumber))
-                throw new Exception("User does not have valid contact info");
-
-            // 2. Expire old OTPs
-            var existingOtps = await _otpRepo.GetActiveOtpsByUserIdAsync(request.UserId);
-            foreach (var otp in existingOtps)
-            {
-                otp.IsUsed = true;
-                otp.ExpiresAt = DateTime.UtcNow;
-                await _otpRepo.UpdateAsync(otp);
-            }
-
-            // 3. Generate SECURE OTP (FIXED)
-            var newOtp = RandomNumberGenerator.GetInt32(100000, 1000000).ToString();
-
-            var otpCode = new OtpCode
-            {
-                UserId = request.UserId,
-                Code = newOtp,
-                Channel = request.Channel,
-                CreatedAt = DateTime.UtcNow,
-                ExpiresAt = DateTime.UtcNow.AddMinutes(5),
-                IsUsed = false
-            };
-
-            // 4. Send FIRST (FIXED ORDER)
-            var channel = request.Channel?.ToLower();
-
-            if (channel == "email")
-            {
-                await _emailService.SendOtpAsync(user.Email, newOtp);
-            }
-            else if (channel == "sms")
-            {
+            case "sms":
                 if (string.IsNullOrWhiteSpace(user.PhoneNumber))
-                    throw new Exception("User does not have a valid phone number");
+                    throw new Exception("User phone number is missing");
 
-                await _smsService.SendOtpAsync(user.PhoneNumber, newOtp);
-            }
-            else
-            {
-                throw new Exception("Unsupported channel");
-            }
+                await _smsService.SendOtpAsync(user.PhoneNumber, otp);
+                break;
 
-            // 5. Save ONLY if sending succeeds
-            await _otpRepo.AddAsync(otpCode);
-
-            return newOtp; // ⚠️ keep for development ONLY
+            default:
+                throw new Exception("Invalid OTP channel");
         }
+
+        return otp;
     }
 }

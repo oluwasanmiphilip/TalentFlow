@@ -15,43 +15,37 @@ namespace TalentFlow.Infrastructure.Email
 
         public async Task SendOtpAsync(string recipientEmail, string otpCode)
         {
-            int retryCount = 0;
-            const int maxRetries = 3;
+            using var client = new SmtpClient(_settings.Server, _settings.Port)
+            {
+                Credentials = new NetworkCredential(_settings.Username, _settings.Password),
+                EnableSsl = true
+            };
 
-            while (true)
+            var mail = new MailMessage
+            {
+                From = new MailAddress(_settings.SenderEmail, _settings.SenderName),
+                Subject = "Your OTP Code",
+                Body = $"Your OTP code is: {otpCode}",
+                IsBodyHtml = false
+            };
+
+            mail.To.Add(recipientEmail);
+
+            int maxRetries = 3;
+
+            for (int i = 0; i < maxRetries; i++)
             {
                 try
                 {
-                    using var client = new SmtpClient(_settings.Server, _settings.Port)
-                    {
-                        Credentials = new NetworkCredential(_settings.Username, _settings.Password),
-                        EnableSsl = true
-                    };
-
-                    var mail = new MailMessage
-                    {
-                        From = new MailAddress(_settings.SenderEmail, _settings.SenderName),
-                        Subject = "Your OTP Code",
-                        Body = $"Your OTP code is: {otpCode}",
-                        IsBodyHtml = false
-                    };
-
-                    mail.To.Add(recipientEmail);
-
                     await client.SendMailAsync(mail);
-                    break; // ✅ success, exit loop
+                    return; // success exit
                 }
-                catch (Exception ex)
+                catch
                 {
-                    retryCount++;
+                    if (i == maxRetries - 1)
+                        throw;
 
-                    if (retryCount >= maxRetries)
-                    {
-                        throw new Exception($"Failed to send OTP after {maxRetries} attempts. Last error: {ex.Message}");
-                    }
-
-                    // 🔄 wait before retry (exponential backoff)
-                    await Task.Delay(500 * retryCount);
+                    await Task.Delay(500 * (i + 1));
                 }
             }
         }
