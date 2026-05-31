@@ -18,6 +18,7 @@ using TalentFlow.Application.Instructors.Queries;
 using TalentFlow.Application.Interfaces;
 using TalentFlow.Application.LeanersProgress.Commands;
 using TalentFlow.Application.LeanersProgress.Repositories;
+using TalentFlow.Application.Otp.Commands;
 using TalentFlow.Application.Otp.Handlers;
 using TalentFlow.Application.Users.Commands;
 using TalentFlow.Infrastructure.Auth;
@@ -163,8 +164,9 @@ builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddMediatR(cfg =>
 {
     cfg.RegisterServicesFromAssemblies(
-        typeof(Program).Assembly,
-        typeof(RegisterUserCommand).Assembly
+        typeof(RegisterUserCommand).Assembly,
+        typeof(GenerateOtpCommand).Assembly,
+        typeof(ValidateOtpCommand).Assembly
     );
 });
 

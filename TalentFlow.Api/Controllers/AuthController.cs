@@ -332,24 +332,53 @@ namespace TalentFlow.Api.Controllers
         // ============================
         [AllowAnonymous]
         [HttpPost("reset-password")]
-        public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordCommand command)
+        public async Task<IActionResult> ResetPassword(
+    [FromBody] ResetPasswordCommand command)
         {
-            var userDto = await _mediator.Send(new ValidateOtpCommand
-            {
-                UserId = command.UserId,
-                Code = command.OtpCode
-            });
+            var email =
+                command.Email.Trim().ToLowerInvariant();
+
+            // ✅ Find user by email
+            var userDto =
+                await _mediator.Send(new GetUserByEmailCommand
+                {
+                    Email = email
+                });
 
             if (userDto == null)
-                return BadRequest(ApiResponse.Fail<string>("Invalid OTP", 400));
+            {
+                return NotFound(
+                    ApiResponse.Fail<string>(
+                        "User not found",
+                        404));
+            }
 
+            // ✅ Validate OTP
+            var otpResult =
+                await _mediator.Send(new ValidateOtpCommand
+                {
+                    UserId = userDto.Id,
+                    Code = command.OtpCode
+                });
+
+            if (otpResult == null)
+            {
+                return BadRequest(
+                    ApiResponse.Fail<string>(
+                        "Invalid or expired OTP",
+                        400));
+            }
+
+            // ✅ Update password
             await _mediator.Send(new UpdatePasswordCommand
             {
                 UserId = userDto.Id,
                 NewPassword = command.NewPassword
             });
 
-            return Ok(ApiResponse.Success("Password reset successful"));
+            return Ok(
+                ApiResponse.Success(
+                    "Password reset successful"));
         }
     }
 }

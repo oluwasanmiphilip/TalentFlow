@@ -10,29 +10,50 @@ namespace TalentFlow.Application.Users.Handlers
     public class ResetPasswordHandler : IRequestHandler<ResetPasswordCommand, bool>
     {
         private readonly IMediator _mediator;
-        private readonly IUserRepository _userRepo;
 
-        public ResetPasswordHandler(IMediator mediator, IUserRepository userRepo)
+        public ResetPasswordHandler(IMediator mediator)
         {
             _mediator = mediator;
-            _userRepo = userRepo;
         }
 
-        public async Task<bool> Handle(ResetPasswordCommand request, CancellationToken cancellationToken)
+        public async Task<bool> Handle(
+            ResetPasswordCommand request,
+            CancellationToken cancellationToken)
         {
-            var userDto = await _mediator.Send(new ValidateOtpCommand
-            {
-                UserId = request.UserId,
-                Code = request.OtpCode
-            }, cancellationToken);
+            // 1. Normalize email
+            var email = request.Email.Trim().ToLowerInvariant();
 
-            if (userDto == null) return false;
+            // 2. Get user by email
+            var userDto = await _mediator.Send(
+                new GetUserByEmailCommand
+                {
+                    Email = email
+                },
+                cancellationToken);
 
-            await _mediator.Send(new UpdatePasswordCommand
-            {
-                UserId = request.UserId,
-                NewPassword = request.NewPassword
-            }, cancellationToken);
+            if (userDto == null)
+                return false;
+
+            // 3. Validate OTP using UserId from DB
+            var otpResult = await _mediator.Send(
+                new ValidateOtpCommand
+                {
+                    UserId = userDto.Id,
+                    Code = request.OtpCode
+                },
+                cancellationToken);
+
+            if (otpResult == null)
+                return false;
+
+            // 4. Update password using real UserId
+            await _mediator.Send(
+                new UpdatePasswordCommand
+                {
+                    UserId = userDto.Id,
+                    NewPassword = request.NewPassword
+                },
+                cancellationToken);
 
             return true;
         }
